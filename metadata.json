@@ -1,0 +1,7 @@
+{
+  "name": "Somadhan - The Resolution Platform",
+  "description": "A premium, high-impact service resolution platform for Amol's Somadhan brand. Features a cinematic frontend enquiry flow and a robust admin management dashboard.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

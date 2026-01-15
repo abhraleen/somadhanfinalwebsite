@@ -1,0 +1,89 @@
+
+import React, { useState } from 'react';
+import { useApp } from '../App';
+import { translations } from '../translations';
+
+interface AdminLoginProps {
+  onLogin: () => void;
+}
+
+const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
+  const { language, theme } = useApp();
+  const t = translations[language];
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [isAuthenticating, setIsAuthenticating] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAuthenticating(true);
+    
+    setTimeout(() => {
+      if (email === 'amol@somadhan.com' && password === 'admin123') {
+        onLogin();
+      } else {
+        setError('ACCESS DENIED: INVALID SYSTEM CREDENTIALS.');
+        setIsAuthenticating(false);
+      }
+    }, 1500);
+  };
+
+  return (
+    <div className={`min-h-screen flex items-center justify-center p-8 grid-pattern transition-colors duration-700 ${theme === 'dark' ? 'bg-black' : 'bg-gray-100'}`}>
+      <div className="w-full max-w-md animate__animated animate__fadeIn">
+        <div className="mb-12 text-center">
+          <div className="text-orange-500 font-black mb-4 animate-pulse uppercase tracking-[0.5em] text-[10px]">Restricted Domain</div>
+          <h1 className={`text-5xl font-black uppercase italic tracking-tighter mb-2 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{t.brand}</h1>
+          <p className="text-[10px] uppercase tracking-[0.4em] font-bold opacity-30">Command Center Authenticator</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="space-y-2">
+            <label className={`text-[10px] uppercase font-black tracking-widest opacity-30 ml-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>System ID</label>
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="amol@somadhan.com"
+              className={`w-full border px-6 py-5 rounded-xl focus:outline-none focus:border-orange-500 transition-all font-black uppercase placeholder:opacity-10 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className={`text-[10px] uppercase font-black tracking-widest opacity-30 ml-4 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>Secure Key</label>
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className={`w-full border px-6 py-5 rounded-xl focus:outline-none focus:border-orange-500 transition-all font-black placeholder:opacity-10 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-black/5 border-black/10 text-black'}`}
+            />
+          </div>
+          
+          {error && <p className="text-[10px] text-red-500 font-black uppercase tracking-widest text-center animate-shake">{error}</p>}
+          
+          <button
+            type="submit"
+            disabled={isAuthenticating}
+            className={`w-full py-5 rounded-xl font-black uppercase transition-all transform active:scale-95 disabled:opacity-50 ${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'} hover:bg-orange-500 hover:text-white`}
+          >
+            {isAuthenticating ? 'Handshaking...' : 'Authenticate'}
+          </button>
+        </form>
+
+        <div className="mt-12 text-center flex flex-col gap-6">
+          <div className={`p-6 border rounded-2xl ${theme === 'dark' ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}>
+            <p className="text-[10px] uppercase font-black opacity-20 tracking-widest mb-3">Dev / Owner Access:</p>
+            <code className="text-[10px] font-black text-orange-500/60 tracking-widest">amol@somadhan.com / admin123</code>
+          </div>
+          <a href="#/" className="text-[10px] uppercase tracking-widest opacity-20 hover:opacity-100 transition-opacity font-black">Return to Public Terminal</a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLogin;
