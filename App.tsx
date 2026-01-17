@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, createContext, useContext } from 'react';
+import { ToastProvider } from './hooks/useToast';
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
 import PublicHome from './views/PublicHome';
 import AdminDashboard from './views/AdminDashboard';
@@ -61,19 +62,21 @@ const App: React.FC = () => {
 
   return (
     <AppContext.Provider value={{ language, setLanguage, theme, toggleTheme }}>
-      <HashRouter>
-        <Routes>
-          <Route path="/" element={<PublicHome />} />
-          <Route 
-            path="/admin" 
-            element={isAdminAuthenticated ? <AdminDashboard onLogout={handleLogout} /> : <Navigate to="/admin/login" />} 
-          />
-          <Route 
-            path="/admin/login" 
-            element={!isAdminAuthenticated ? <AdminLogin onLogin={handleLogin} /> : <Navigate to="/admin" />} 
-          />
-        </Routes>
-      </HashRouter>
+      <ToastProvider>
+        <HashRouter>
+          <Routes>
+            <Route path="/" element={<PublicHome />} />
+            <Route 
+              path="/admin" 
+              element={isAdminAuthenticated ? <AdminDashboard onLogout={handleLogout} /> : <Navigate to="/admin/login" />} 
+            />
+            <Route 
+              path="/admin/login" 
+              element={!isAdminAuthenticated ? <AdminLogin onLogin={handleLogin} /> : <Navigate to="/admin" />} 
+            />
+          </Routes>
+        </HashRouter>
+      </ToastProvider>
     </AppContext.Provider>
   );
 };

@@ -1,10 +1,10 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useEnquiries } from '../hooks/useEnquiries';
-import { EnquiryStatus, Enquiry } from '../types';
+import { EnquiryStatus } from '../types';
 import { translations } from '../translations';
 import { useApp } from '../App';
+import { useToast } from '../hooks/useToast';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -15,6 +15,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   const { language, setLanguage, theme, toggleTheme } = useApp();
   const t = translations[language];
   const [filter, setFilter] = useState<EnquiryStatus | 'ALL'>('ALL');
+  const { pushToast } = useToast();
+  const [entered, setEntered] = useState(false);
 
   const filteredEnquiries = filter === 'ALL' 
     ? enquiries 
@@ -26,6 +28,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     [EnquiryStatus.ASSIGNED]: 'bg-indigo-600 text-white',
     [EnquiryStatus.COMPLETED]: 'bg-emerald-600 text-white',
   };
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   return (
     <div className={`min-h-screen flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
@@ -81,14 +88,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       </aside>
 
       {/* Content Area */}
-      <main className={`flex-1 ml-80 p-12 bg-grid-pattern overflow-y-auto`}>
+      <main className={`flex-1 ml-80 p-12 bg-grid-pattern overflow-y-auto page-enter ${entered ? 'active' : ''}`}>
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div>
             <h1 className="text-5xl font-black uppercase italic tracking-tighter mb-4">Command Center</h1>
             <p className="text-xs uppercase tracking-[0.4em] font-bold opacity-20">Active resolution log / {filteredEnquiries.length} Targets</p>
           </div>
-          
-          <div className={`flex gap-2 p-1 rounded-xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+          <div className="flex items-center gap-4">
+            <Link
+              to="/"
+              className={`px-5 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg border transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} hover:bg-orange-500 hover:text-white hover:border-orange-500 flex items-center gap-2`}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg>
+              Public Terminal
+            </Link>
+
+            <div className={`flex gap-2 p-1 rounded-xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
             {['ALL', ...Object.values(EnquiryStatus)].map(s => (
               <button
                 key={s}
@@ -98,6 +113,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                 {s}
               </button>
             ))}
+            </div>
           </div>
         </header>
 
@@ -111,9 +127,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               <table className="w-full text-left">
                 <thead className={`${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
                   <tr>
+                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Client</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Target Service</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Protocol Type</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Link Contact</th>
+                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Location</th>
+                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Preferred</th>
+                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Contact</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Timestamp</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Status</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Operation</th>
@@ -123,12 +142,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   {filteredEnquiries.map((e) => (
                     <tr key={e.id} className="hover:bg-orange-500/5 transition-colors group">
                       <td className="px-10 py-8">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-black tracking-widest">{e.name || '—'}</span>
+                          <span className="text-[10px] opacity-40 font-black">{e.phone}</span>
+                        </div>
+                      </td>
+                      <td className="px-10 py-8">
                         <span className="text-xl font-black uppercase italic tracking-tighter group-hover:text-orange-500 transition-colors">{t.services[e.service as keyof typeof t.services]}</span>
                       </td>
                       <td className="px-10 py-8">
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
                           {t.categories[e.category as keyof typeof t.categories]} {e.landCondition ? `• ${t.categories[e.landCondition as keyof typeof t.categories]}` : ''}
                         </span>
+                      </td>
+                      <td className="px-10 py-8">
+                        <span className="text-sm font-black tracking-widest">{e.address || '—'}</span>
+                      </td>
+                      <td className="px-10 py-8">
+                        <span className="text-[10px] opacity-40 font-black tracking-widest">{(e.preferredDate || 'N/A')}{e.preferredTime ? ` • ${e.preferredTime}` : ''}</span>
                       </td>
                       <td className="px-10 py-8">
                         <a href={`tel:${e.phone}`} className="text-sm font-black tracking-widest hover:text-orange-500 transition-colors">{e.phone}</a>
@@ -141,7 +172,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       <td className="px-10 py-8">
                         <select
                           value={e.status}
-                          onChange={(ev) => updateEnquiryStatus(e.id, ev.target.value as EnquiryStatus)}
+                          onChange={(ev) => {
+                            updateEnquiryStatus(e.id, ev.target.value as EnquiryStatus);
+                            pushToast('Status updated', 'info');
+                          }}
                           className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer border transition-all ${statusColors[e.status]} ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                         >
                           {Object.values(EnquiryStatus).map(s => (
@@ -152,7 +186,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       <td className="px-10 py-8">
                         <button 
                           onClick={() => {
-                            if(confirm('Archive this log entry?')) deleteEnquiry(e.id);
+                            if(confirm('Archive this log entry?')) {
+                              deleteEnquiry(e.id);
+                              pushToast('Entry archived', 'warning');
+                            }
                           }}
                           className="text-[10px] uppercase font-black text-red-500 opacity-20 hover:opacity-100 tracking-widest transition-all"
                         >

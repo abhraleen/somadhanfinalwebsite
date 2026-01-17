@@ -1,5 +1,6 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
 import { translations } from '../translations';
 
@@ -10,6 +11,8 @@ interface AdminLoginProps {
 const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const { language, theme } = useApp();
   const t = translations[language];
+  const navigate = useNavigate();
+  const [entered, setEntered] = useState(false);
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,8 +33,31 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
     }, 1500);
   };
 
+  // Keyboard shortcut: Escape to return to public terminal
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') navigate('/');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navigate]);
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
+
   return (
-    <div className={`min-h-screen flex items-center justify-center p-8 grid-pattern transition-colors duration-700 ${theme === 'dark' ? 'bg-black' : 'bg-gray-100'}`}>
+    <div className={`min-h-screen flex items-center justify-center p-8 grid-pattern transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-black' : 'bg-gray-100'}`}>
+      {/* Back to Public Terminal */}
+      <button
+        onClick={() => navigate('/')}
+        aria-label="Go back"
+        className={`fixed top-6 left-6 px-4 py-2 rounded-full border text-[10px] font-black uppercase tracking-widest transition-all duration-500 flex items-center gap-2 ${theme === 'dark' ? 'bg-white/5 text-white border-white/10' : 'bg-black/5 text-black border-black/10'} hover:bg-orange-500 hover:text-white hover:border-orange-500`}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg>
+        Back
+      </button>
       <div className="w-full max-w-md animate__animated animate__fadeIn">
         <div className="mb-12 text-center">
           <div className="text-orange-500 font-black mb-4 animate-pulse uppercase tracking-[0.5em] text-[10px]">Restricted Domain</div>

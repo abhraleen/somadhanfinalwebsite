@@ -28,6 +28,11 @@ export interface Enquiry {
   category: 'Repair' | 'New' | 'Buy' | 'Sell' | 'General';
   landCondition?: 'Old' | 'New';
   phone: string;
+  name?: string;
+  address?: string;
+  preferredDate?: string;
+  preferredTime?: string;
+  notes?: string;
   createdAt: string;
   status: EnquiryStatus;
 }

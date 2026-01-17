@@ -1,7 +1,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
-import { SERVICES } from '../constants';
+import { SERVICES, OWNER_WHATSAPP } from '../constants';
 import { ServiceType, ServiceDefinition } from '../types';
 import { useEnquiries } from '../hooks/useEnquiries';
 import { translations } from '../translations';
@@ -37,11 +38,17 @@ const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
 
   return (
     <div className={`fixed inset-0 z-[100] bg-[#0A0A0A] flex flex-col items-center justify-center transition-opacity duration-1000 ${phase === 2 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-      <div className="relative">
-        <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden">
+      <div className="water-bg"></div>
+      <div className="relative flex flex-col items-center">
+        <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden water-text">
+          {displayText}
+        </h1>
+        {/* Reflection */}
+        <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden opacity-10 transform scale-y-[-1] mt-2 reflection-mask">
           {displayText}
         </h1>
         <div className="scan-line"></div>
+        <div className="horizon-line mt-8"></div>
       </div>
       <div className="mt-8 flex flex-col items-center gap-2">
         <p className="mono text-[10px] text-orange-500 uppercase tracking-[0.5em] animate-pulse">{t.initializing}</p>
@@ -63,11 +70,19 @@ const PublicHome: React.FC = () => {
   const [selectedOption, setSelectedOption] = useState<string>('');
   const [landCondition, setLandCondition] = useState<string>('');
   const [phone, setPhone] = useState<string>('');
+  const [name, setName] = useState<string>('');
+  const [address, setAddress] = useState<string>('');
+  const [preferredDate, setPreferredDate] = useState<string>('');
+  const [preferredTime, setPreferredTime] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const { saveEnquiry } = useEnquiries();
   const flowRef = useRef<HTMLDivElement>(null);
   const revealRefs = useRef<(HTMLElement | null)[]>([]);
+  const { pushToast } = useToast();
+  const [entered, setEntered] = useState(false);
+  const [parallax, setParallax] = useState({ x: 0, y: 0 });
 
   // Intersection Observer for scroll reveal
   useEffect(() => {
@@ -82,6 +97,12 @@ const PublicHome: React.FC = () => {
     revealRefs.current.forEach(ref => ref && observer.observe(ref));
     return () => observer.disconnect();
   }, [introDone]);
+
+  // Page enter transition
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const handleServiceSelect = (service: ServiceDefinition) => {
     setSelectedService(service);
@@ -98,17 +119,43 @@ const PublicHome: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 10) return;
+    if (phone.length < 10 || !name || !address) return;
     setIsSubmitting(true);
     setTimeout(() => {
-      saveEnquiry({
+      const enquiry = {
         service: selectedService!.type,
         category: (selectedOption || 'General') as any,
         landCondition: landCondition as any,
         phone,
-      });
+        name,
+        address,
+        preferredDate: preferredDate || undefined,
+        preferredTime: preferredTime || undefined,
+        notes: notes || undefined,
+      };
+      saveEnquiry(enquiry);
       setIsSubmitting(false);
       setStep(4);
+      pushToast(t.linkedEngaged, 'success');
+
+      // Open WhatsApp with prefilled message to owner
+      const svc = t.services[selectedService!.type as keyof typeof t.services];
+      const cats = t.categories[(selectedOption || 'General') as keyof typeof t.categories];
+      const land = landCondition ? t.categories[landCondition as keyof typeof t.categories] : '';
+      const lines = [
+        `${t.brand} • New Service Request`,
+        '',
+        `Client: ${name}`,
+        `Phone: ${phone}`,
+        `Service: ${svc}${cats ? ` (${cats})` : ''}${land ? ` • ${land}` : ''}`,
+        `Location: ${address}`,
+        `Preferred: ${preferredDate || 'N/A'} ${preferredTime || ''}`.trim(),
+        notes ? `Notes: ${notes}` : undefined,
+        '',
+        'Please confirm availability and pricing.',
+      ].filter(Boolean).join('\n');
+      const url = `https://wa.me/${OWNER_WHATSAPP}?text=${encodeURIComponent(lines)}`;
+      window.open(url, '_blank', 'noopener');
     }, 1200);
   };
 
@@ -118,14 +165,33 @@ const PublicHome: React.FC = () => {
     setSelectedOption('');
     setLandCondition('');
     setPhone('');
+    setName('');
+    setAddress('');
+    setPreferredDate('');
+    setPreferredTime('');
+    setNotes('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const progressPercentage = (step / 4) * 100;
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
+    <div className={`min-h-screen transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
       {!introDone && <IntroOverlay onComplete={() => setIntroDone(true)} />}
+      {/* Keyboard shortcuts: Escape to go back / reset */}
+      {useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+          if (e.key === 'Escape') {
+            if (step > 0 && step < 4) {
+              setStep(prev => Math.max(0, prev - 1));
+            } else if (step === 4) {
+              resetFlow();
+            }
+          }
+        };
+        window.addEventListener('keydown', onKey);
+        return () => window.removeEventListener('keydown', onKey);
+      }, [step])}
 
       {/* Background Cinematic Elements */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -154,7 +220,15 @@ const PublicHome: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className={`h-screen flex flex-col justify-center px-8 md:px-24 grid-pattern relative overflow-hidden z-10`}>
+      <section
+        onMouseMove={(e) => {
+          const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+          const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
+          const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
+          setParallax({ x, y });
+        }}
+        className={`h-screen flex flex-col justify-center px-8 md:px-24 grid-pattern relative overflow-hidden z-10`}
+      >
         <div className={`transition-all duration-1000 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-xl'}`}>
           <div className="max-w-5xl">
             <h1 className="text-6xl md:text-[11rem] font-black cinematic-text leading-[0.82] mb-10 animate__animated animate__fadeInUp">
@@ -168,7 +242,7 @@ const PublicHome: React.FC = () => {
               onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
               className="group flex items-center gap-6 btn-magnetic animate__animated animate__fadeIn animate__delay-1s"
             >
-              <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+              <div style={{ transform: `translate3d(${parallax.x * 6}px, ${parallax.y * 6}px, 0)` }} className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
                 <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
               </div>
               <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.initiateFlow}</span>
@@ -180,6 +254,17 @@ const PublicHome: React.FC = () => {
       {/* Enquiry Flow Section */}
       <section ref={flowRef} className={`min-h-screen py-40 px-8 md:px-24 relative overflow-hidden transition-all duration-1000 z-20 ${theme === 'dark' ? 'bg-white text-black' : 'bg-[#111] text-white'}`}>
         <div className="fixed top-0 left-0 h-1.5 bg-orange-500 transition-all duration-1000 z-[60]" style={{ width: `${progressPercentage}%` }}></div>
+        {/* Floating Back Button */}
+        {step > 0 && step < 4 && (
+          <button
+            onClick={() => setStep(prev => Math.max(0, prev - 1))}
+            aria-label="Go back"
+            className={`fixed bottom-6 left-6 z-[70] px-6 py-3 rounded-full border font-black uppercase tracking-[0.3em] shadow-2xl transition-all duration-500 flex items-center gap-3 ${theme === 'dark' ? 'bg-black/70 text-white border-white/10 backdrop-blur-md' : 'bg-white/70 text-black border-black/10 backdrop-blur-md'} hover:bg-orange-500 hover:text-white hover:border-orange-500 hover:translate-y-[-2px]`}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7"></path></svg>
+            Back
+          </button>
+        )}
         
         <div className="max-w-7xl mx-auto">
           <div className={`mb-24 flex flex-col md:flex-row md:items-end justify-between gap-8 border-b-2 pb-16 ${theme === 'dark' ? 'border-black/5' : 'border-white/5'}`}>
@@ -291,6 +376,51 @@ const PublicHome: React.FC = () => {
                 <p className="text-3xl md:text-5xl font-black opacity-20 italic uppercase tracking-tighter mb-16">
                   {t.establishConnection}:
                 </p>
+                {/* Client Details */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Client Name</label>
+                    <input
+                      required
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Your full name"
+                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Location / Address</label>
+                    <input
+                      required
+                      type="text"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      placeholder="Apartment / Street / City"
+                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Preferred Date</label>
+                    <input
+                      type="date"
+                      value={preferredDate}
+                      onChange={(e) => setPreferredDate(e.target.value)}
+                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Preferred Time</label>
+                    <input
+                      type="time"
+                      value={preferredTime}
+                      onChange={(e) => setPreferredTime(e.target.value)}
+                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    />
+                  </div>
+                </div>
+
+                {/* Phone Field */}
                 <div className="relative group overflow-hidden">
                   <span className="absolute left-0 top-1/2 -translate-y-1/2 text-5xl md:text-8xl font-black opacity-10 group-focus-within:text-orange-500 group-focus-within:opacity-100 transition-all duration-700 uppercase">+91</span>
                   <input
@@ -304,9 +434,19 @@ const PublicHome: React.FC = () => {
                   />
                   <div className="absolute bottom-0 left-0 h-4 bg-orange-500 transition-all duration-1000 w-0 group-focus-within:w-full"></div>
                 </div>
+                <div className="mt-10">
+                  <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Notes (optional)</label>
+                  <textarea
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    placeholder="Brief description of the work"
+                    rows={3}
+                    className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                  />
+                </div>
                 <div className="mt-20 flex flex-col md:flex-row items-center gap-12">
                   <button
-                    disabled={phone.length < 10 || isSubmitting}
+                    disabled={phone.length < 10 || !name || !address || isSubmitting}
                     className={`w-full md:w-auto px-24 py-10 text-2xl font-black uppercase italic transition-all duration-700 flex items-center justify-center gap-6 ${theme === 'dark' ? 'bg-black text-white shadow-2xl' : 'bg-white text-black shadow-2xl shadow-black/5'} hover:bg-orange-500 hover:text-white disabled:opacity-10 disabled:grayscale hover:scale-105 active:scale-95`}
                   >
                     {isSubmitting ? (

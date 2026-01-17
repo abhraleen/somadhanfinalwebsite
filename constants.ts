@@ -19,3 +19,4 @@ export const SERVICES: ServiceDefinition[] = [
 
 export const ADMIN_AUTH_KEY = 'somadhan_admin_token';
 export const ENQUIRIES_STORAGE_KEY = 'somadhan_enquiries';
+export const OWNER_WHATSAPP = '918420745907';
