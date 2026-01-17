@@ -7,6 +7,8 @@ import { ServiceType, ServiceDefinition } from '../types';
 import { useEnquiries } from '../hooks/useEnquiries';
 import { translations } from '../translations';
 import { useApp } from '../App';
+import Reveal from '../components/Reveal';
+import ResolutionFlow from '../components/ResolutionFlow';
 
 const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { language } = useApp();
@@ -86,6 +88,7 @@ const PublicHome: React.FC = () => {
   const { pushToast } = useToast();
   const [entered, setEntered] = useState(false);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const [scrolled, setScrolled] = useState(false);
   
   const todayISO = () => new Date().toISOString().slice(0, 10);
   const quickDates = () => {
@@ -138,6 +141,34 @@ const PublicHome: React.FC = () => {
     const id = requestAnimationFrame(() => setEntered(true));
     return () => cancelAnimationFrame(id);
   }, []);
+
+  // Header blur/glass on scroll
+  useEffect(() => {
+    const onScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Pointer tilt for service cards (desktop only)
+  const onCardMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const nx = (e.clientX - rect.left) / rect.width - 0.5; // -0.5..0.5
+    const ny = (e.clientY - rect.top) / rect.height - 0.5;
+    const maxDeg = 6; // subtle, premium
+    const tiltY = nx * maxDeg; // rotateY with X movement
+    const tiltX = -ny * maxDeg; // rotateX with Y movement
+    target.style.setProperty('--tiltX', `${tiltX}deg`);
+    target.style.setProperty('--tiltY', `${tiltY}deg`);
+  };
+  const onCardMouseLeave = (e: React.MouseEvent<HTMLElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    target.style.setProperty('--tiltX', `0deg`);
+    target.style.setProperty('--tiltY', `0deg`);
+  };
 
   const handleServiceSelect = (service: ServiceDefinition) => {
     setSelectedService(service);
@@ -235,7 +266,7 @@ const PublicHome: React.FC = () => {
       </div>
 
       {/* Dynamic Header */}
-      <nav className={`p-6 md:p-10 flex justify-between items-center fixed top-0 w-full z-50 mix-blend-difference transition-all duration-1000 ${introDone ? 'opacity-100' : 'opacity-0 translate-y--10'}`}>
+      <nav className={`p-6 md:p-10 flex justify-between items-center fixed top-0 w-full z-50 transition-all duration-500 ${introDone ? 'opacity-100' : 'opacity-0 translate-y--10'} ${scrolled ? (theme === 'dark' ? 'bg-black/30 backdrop-blur-md' : 'bg-white/40 backdrop-blur-md') : 'bg-transparent'} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
         <div className="flex items-center gap-4">
           <div className="text-2xl font-black tracking-tighter uppercase italic">{t.brand}</div>
           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse hidden md:block"></div>
@@ -262,26 +293,33 @@ const PublicHome: React.FC = () => {
           const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
           setParallax({ x, y });
         }}
-        className={`h-screen flex flex-col justify-center px-8 md:px-24 grid-pattern relative overflow-hidden z-10`}
+        className={`h-screen px-8 md:px-24 grid-pattern relative overflow-hidden z-10 flex items-center`}
       >
-        <div className={`transition-all duration-1000 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-xl'}`}>
-          <div className="max-w-5xl">
-            <h1 className="text-6xl md:text-[11rem] font-black cinematic-text leading-[0.82] mb-10 animate__animated animate__fadeInUp">
-              {t.heroTitle1}<br />
-              <span className="text-orange-500">{t.heroTitle2}</span>
-            </h1>
-            <p className="max-w-xl text-lg md:text-2xl opacity-40 leading-relaxed mb-12 animate__animated animate__fadeIn animate__delay-1s">
-              {t.heroDesc}
-            </p>
-            <button 
-              onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
-              className="group flex items-center gap-6 btn-magnetic animate__animated animate__fadeIn animate__delay-1s"
-            >
-              <div style={{ transform: `translate3d(${parallax.x * 6}px, ${parallax.y * 6}px, 0)` }} className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
-                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-              </div>
-              <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.initiateFlow}</span>
-            </button>
+        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+          <Reveal className={`transition-all duration-1000 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-xl'}`}>
+            <div className="max-w-5xl">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-6">
+                Solve it. Properly.
+              </h1>
+              <h2 className="text-5xl md:text-7xl lg:text-8xl font-black italic tracking-tight mb-10">
+                <span className="text-orange-500">SOMADHAN.</span>
+              </h2>
+              <p className="max-w-2xl text-lg md:text-xl opacity-60 leading-relaxed mb-12">
+                From plumbing and electrical work to construction and repairs — one call, one system, complete resolution.
+              </p>
+              <button 
+                onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="group inline-flex items-center gap-6 btn-magnetic"
+              >
+                <div style={{ transform: `translate3d(${parallax.x * 6}px, ${parallax.y * 6}px, 0)` }} className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">Start Service Request</span>
+              </button>
+            </div>
+          </Reveal>
+          <div className="hidden md:block">
+            <ResolutionFlow className="w-full" width={520} height={360} />
           </div>
         </div>
       </section>
@@ -330,11 +368,13 @@ const PublicHome: React.FC = () => {
 
           <div className="relative">
             {step === 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 step-enter">
+              <Reveal staggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 step-enter">
                 {SERVICES.map((s, idx) => (
                   <button
                     key={s.type}
-                    style={{ animationDelay: `${idx * 0.08}s` }}
+                    style={{ ['--stagger-index' as any]: idx }}
+                    onMouseMove={onCardMouseMove}
+                    onMouseLeave={onCardMouseLeave}
                     onClick={() => handleServiceSelect(s)}
                     className={`group h-[320px] border-2 flex flex-col items-start justify-end p-10 transition-all duration-700 relative overflow-hidden service-card ${theme === 'dark' ? 'border-black/5 hover:border-black text-black shadow-2xl shadow-black/0 hover:shadow-black/5' : 'border-white/5 hover:border-white text-white shadow-2xl shadow-white/0 hover:shadow-white/5'}`}
                   >
@@ -352,11 +392,11 @@ const PublicHome: React.FC = () => {
                     </div>
                   </button>
                 ))}
-              </div>
+              </Reveal>
             )}
 
             {step === 1 && selectedService && (
-              <div className="flex flex-col gap-16 step-enter">
+              <Reveal staggerChildren className="flex flex-col gap-16 step-enter">
                 <p className="text-3xl md:text-5xl font-black opacity-20 italic uppercase tracking-tighter">
                   {t.determineRequirement} {t.services[selectedService.type as keyof typeof t.services]}:
                 </p>
@@ -364,7 +404,7 @@ const PublicHome: React.FC = () => {
                   {selectedService.options.map((opt, idx) => (
                     <button
                       key={opt}
-                      style={{ animationDelay: `${idx * 0.1}s` }}
+                      style={{ ['--stagger-index' as any]: idx }}
                       onClick={() => {
                         setSelectedOption(opt);
                         if (selectedService.requiresLandLogic) {
@@ -380,11 +420,11 @@ const PublicHome: React.FC = () => {
                     </button>
                   ))}
                 </div>
-              </div>
+              </Reveal>
             )}
 
             {step === 3 && (
-              <div className="flex flex-col gap-16 step-enter">
+              <Reveal staggerChildren className="flex flex-col gap-16 step-enter">
                 <p className="text-3xl md:text-5xl font-black opacity-20 italic uppercase tracking-tighter">
                   {t.propertyState}:
                 </p>
@@ -392,7 +432,7 @@ const PublicHome: React.FC = () => {
                   {['Old', 'New'].map((cond, idx) => (
                     <button
                       key={cond}
-                      style={{ animationDelay: `${idx * 0.1}s` }}
+                      style={{ ['--stagger-index' as any]: idx }}
                       onClick={() => {
                         setLandCondition(cond);
                         setStep(2);
@@ -403,7 +443,7 @@ const PublicHome: React.FC = () => {
                     </button>
                   ))}
                 </div>
-              </div>
+              </Reveal>
             )}
 
             {step === 2 && (

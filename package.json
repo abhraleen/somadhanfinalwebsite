@@ -12,7 +12,7 @@
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^6.22.3",
-    "vite_react_shadcn_ts": "file:../../../ebitez/ebitez-chow-time-today-main"
+    "vite_react_shadcn_ts": "file:../../../../ebitez/ebitez-chow-time-today-main"
   },
   "devDependencies": {
     "@types/react": "^19.0.0",

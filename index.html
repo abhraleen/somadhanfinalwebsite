@@ -56,12 +56,25 @@
       /* Reveal Animation Classes */
       .reveal {
         opacity: 0;
-        transform: translateY(30px);
-        transition: opacity 1.2s var(--ease-out-expo), transform 1.2s var(--ease-out-expo);
+        transform: translate3d(0, 40px, 0) scale(0.98);
+        will-change: opacity, transform;
+        transition: opacity 0.7s var(--ease-out-expo), transform 0.7s var(--ease-out-expo);
       }
       .reveal.active {
         opacity: 1;
-        transform: translateY(0);
+        transform: translate3d(0, 0, 0) scale(1);
+      }
+
+      /* Staggered children reveal */
+      .stagger > * {
+        opacity: 0;
+        transform: translate3d(0, 16px, 0);
+        transition: opacity 0.6s var(--ease-out-expo), transform 0.6s var(--ease-out-expo);
+        transition-delay: calc(var(--stagger-index, 0) * 60ms);
+      }
+      .stagger.active > * {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
       }
 
       /* Page Enter Transition */
@@ -77,10 +90,18 @@
 
       /* Hover Card Effect */
       .service-card {
-        transition: all 0.6s var(--ease-out-expo);
+        transition: transform 0.6s var(--ease-out-expo), box-shadow 0.6s var(--ease-out-expo);
+        will-change: transform;
       }
       .service-card:hover {
-        transform: translateY(-8px) scale(1.02);
+        transform: translate3d(0, -8px, 0) scale(1.02) rotateX(var(--tiltX, 0deg)) rotateY(var(--tiltY, 0deg));
+        transform-style: preserve-3d;
+        perspective: 600px;
+      }
+      @media (max-width: 768px) {
+        .service-card:hover {
+          transform: translate3d(0, -6px, 0) scale(1.01);
+        }
       }
 
       .btn-magnetic {
@@ -107,6 +128,7 @@
       }
       .floating-blob {
         animation: float 10s ease-in-out infinite;
+        will-change: transform;
       }
 
       /* Premium Water / Horizon Effects */
@@ -144,6 +166,20 @@
       .reflection-mask {
         -webkit-mask-image: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0));
                 mask-image: linear-gradient(to bottom, rgba(255,255,255,0.6), rgba(255,255,255,0));
+      }
+    </style>
+    <style>
+      /* Accessibility: reduce motion */
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation: none !important;
+          transition: none !important;
+          scroll-behavior: auto !important;
+        }
+        .reveal, .reveal.active, .stagger > *, .stagger.active > * {
+          opacity: 1 !important;
+          transform: none !important;
+        }
       }
     </style>
   <script type="importmap">

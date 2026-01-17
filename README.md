@@ -33,3 +33,17 @@ Setup:
 3. Restart `npm run dev`
 
 Note: Database writes are currently disabled and the app uses localStorage via [hooks/useEnquiries.ts](hooks/useEnquiries.ts) until you provide keys and enable integration.
+
+## Premium Animations
+
+- Reveal component: Use [components/Reveal.tsx](components/Reveal.tsx) to add smooth, scroll-triggered reveals.
+   - Wrap any block: `<Reveal>...</Reveal>`
+   - Stagger children: `<Reveal staggerChildren>...</Reveal>` and each child will animate with a slight delay.
+   - Accessible: Respects `prefers-reduced-motion` and uses transform-only animations for performance.
+- Styles: See [index.html](index.html#L1-L999) for `.reveal`, `.stagger`, and performance tweaks (`will-change`, transform-only).
+- Example usage added in [views/PublicHome.tsx](views/PublicHome.tsx) for hero and flow sections.
+
+Performance notes:
+- Animations use `transform` and `opacity` only to avoid layout thrashing.
+- Scroll-trigger uses `IntersectionObserver` and unobserves after activation.
+- Mobile-friendly: thresholds and reduced-motion fallback ensure smoothness.
