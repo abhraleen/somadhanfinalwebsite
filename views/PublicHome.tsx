@@ -74,6 +74,9 @@ const PublicHome: React.FC = () => {
   const [address, setAddress] = useState<string>('');
   const [preferredDate, setPreferredDate] = useState<string>('');
   const [preferredTime, setPreferredTime] = useState<string>('');
+  const [timeHour, setTimeHour] = useState<string>('');
+  const [timeMinute, setTimeMinute] = useState<string>('');
+  const [timePeriod, setTimePeriod] = useState<'AM' | 'PM'>('AM');
   const [notes, setNotes] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -83,6 +86,38 @@ const PublicHome: React.FC = () => {
   const { pushToast } = useToast();
   const [entered, setEntered] = useState(false);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  
+  const todayISO = () => new Date().toISOString().slice(0, 10);
+  const quickDates = () => {
+    const today = new Date();
+    const tomorrow = new Date();
+    tomorrow.setDate(today.getDate() + 1);
+    const inTwoDays = new Date();
+    inTwoDays.setDate(today.getDate() + 2);
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
+    return [
+      { label: 'Today', value: fmt(today) },
+      { label: 'Tomorrow', value: fmt(tomorrow) },
+      { label: 'Day After', value: fmt(inTwoDays) },
+    ];
+  };
+  const quickTimes = () => [
+    { label: '10:00 AM', hour: 10, minute: 0, period: 'AM' },
+    { label: '12:00 PM', hour: 12, minute: 0, period: 'PM' },
+    { label: '3:00 PM', hour: 3, minute: 0, period: 'PM' },
+    { label: '6:00 PM', hour: 6, minute: 0, period: 'PM' }
+  ];
+
+  useEffect(() => {
+    if (timeHour !== '' && timeMinute !== '') {
+      const hh = Math.min(Math.max(parseInt(timeHour, 10), 1), 12);
+      const mm = Math.min(Math.max(parseInt(timeMinute, 10), 0), 59);
+      const formatted = `${hh}:${String(mm).padStart(2, '0')} ${timePeriod}`;
+      setPreferredTime(formatted);
+    } else {
+      setPreferredTime('');
+    }
+  }, [timeHour, timeMinute, timePeriod]);
 
   // Intersection Observer for scroll reveal
   useEffect(() => {
@@ -376,6 +411,26 @@ const PublicHome: React.FC = () => {
                 <p className="text-3xl md:text-5xl font-black opacity-20 italic uppercase tracking-tighter mb-16">
                   {t.establishConnection}:
                 </p>
+                {/* Selection Summary */}
+                {selectedService && (
+                  <div className={`mb-10 p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 ${theme === 'dark' ? 'border-black/10 bg-black/5' : 'border-white/10 bg-white/5'}`}>
+                    <div>
+                      <p className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-2">You have selected</p>
+                      <p className="text-xl md:text-2xl font-black italic">
+                        {t.services[selectedService.type as keyof typeof t.services]}
+                        {selectedOption ? ` • ${t.categories[selectedOption as keyof typeof t.categories]}` : ''}
+                        {landCondition ? ` • ${t.categories[landCondition as keyof typeof t.categories]}` : ''}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className={`text-[10px] font-black uppercase tracking-widest px-5 py-2 rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'} hover:bg-orange-500 hover:text-white hover:border-orange-500`}
+                    >
+                      Change
+                    </button>
+                  </div>
+                )}
                 {/* Client Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
                   <div>
@@ -402,21 +457,98 @@ const PublicHome: React.FC = () => {
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Preferred Date</label>
-                    <input
-                      type="date"
-                      value={preferredDate}
-                      onChange={(e) => setPreferredDate(e.target.value)}
-                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
-                    />
+                    <div className="flex flex-col gap-3">
+                      <div className="flex flex-wrap gap-2">
+                        {quickDates().map((d) => (
+                          <button type="button" key={d.label} onClick={() => setPreferredDate(d.value)}
+                            className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} hover:bg-orange-500 hover:text-white`}
+                          >{d.label}</button>
+                        ))}
+                      </div>
+                      <input
+                        type="date"
+                        min={todayISO()}
+                        value={preferredDate}
+                        onChange={(e) => setPreferredDate(e.target.value)}
+                        className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                      />
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Preferred Time</label>
-                    <input
-                      type="time"
-                      value={preferredTime}
-                      onChange={(e) => setPreferredTime(e.target.value)}
-                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
-                    />
+                    <div className="flex flex-col gap-4">
+                      <div className="flex flex-wrap gap-2">
+                        {quickTimes().map((t) => (
+                          <button
+                            type="button"
+                            key={t.label}
+                            onClick={() => {
+                              setTimeHour(String(t.hour));
+                              setTimeMinute(String(t.minute));
+                              setTimePeriod(t.period as 'AM' | 'PM');
+                            }}
+                            className={`px-3 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'} hover:bg-orange-500 hover:text-white`}
+                          >
+                            {t.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-2 block">Hour</label>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={12}
+                            value={timeHour}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/[^0-9]/g, '');
+                              if (raw === '') { setTimeHour(''); return; }
+                              const num = parseInt(raw, 10);
+                              if (num >= 1 && num <= 12) setTimeHour(String(num));
+                            }}
+                            placeholder="6"
+                            className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-2 block">Minute</label>
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={0}
+                            max={59}
+                            value={timeMinute}
+                            onChange={(e) => {
+                              const raw = e.target.value.replace(/[^0-9]/g, '');
+                              if (raw === '') { setTimeMinute(''); return; }
+                              const num = parseInt(raw, 10);
+                              if (num >= 0 && num <= 59) setTimeMinute(String(num));
+                            }}
+                            placeholder="20"
+                            className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                          />
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <label className="text-[10px] uppercase font-black tracking-widest opacity-40">AM/PM</label>
+                          <div className="flex gap-2">
+                            <button type="button"
+                              onClick={() => setTimePeriod('AM')}
+                              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'AM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'}`}
+                            >AM</button>
+                            <button type="button"
+                              onClick={() => setTimePeriod('PM')}
+                              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'PM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'}`}
+                            >PM</button>
+                          </div>
+                        </div>
+                      </div>
+                      {timeHour !== '' && parseInt(timeHour, 10) > 12 && (
+                        <p className="text-[10px] text-red-500 font-black uppercase tracking-widest">Invalid hour. Use 1-12 with AM/PM.</p>
+                      )}
+                      <p className="text-xs font-black uppercase tracking-[0.3em] opacity-30">Selected: {preferredTime || '—'}</p>
+                    </div>
                   </div>
                 </div>
 
@@ -430,6 +562,7 @@ const PublicHome: React.FC = () => {
                     placeholder="00000 00000"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    inputMode="numeric"
                     className={`w-full bg-transparent border-b-[16px] text-5xl md:text-[12rem] font-black py-16 pl-32 md:pl-64 focus:outline-none focus:border-orange-500 transition-all duration-1000 placeholder:opacity-5 ${theme === 'dark' ? 'border-black' : 'border-white'}`}
                   />
                   <div className="absolute bottom-0 left-0 h-4 bg-orange-500 transition-all duration-1000 w-0 group-focus-within:w-full"></div>

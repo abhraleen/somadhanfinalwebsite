@@ -18,3 +18,18 @@ View your app in AI Studio: https://ai.studio/apps/drive/1N9uszUx1xy4O6bRqxjdxKD
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
+
+## Environment Variables (Database later)
+
+This project uses Vite. Any env variable must start with `VITE_` to be exposed to the client via `import.meta.env`.
+
+- `VITE_SUPABASE_URL`: Supabase Project URL
+- `VITE_SUPABASE_ANON_KEY`: Supabase anon public key
+
+Setup:
+
+1. Copy [.env.example](.env.example) to `.env.local`
+2. Fill your values
+3. Restart `npm run dev`
+
+Note: Database writes are currently disabled and the app uses localStorage via [hooks/useEnquiries.ts](hooks/useEnquiries.ts) until you provide keys and enable integration.
