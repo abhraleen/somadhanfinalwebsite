@@ -299,13 +299,13 @@ const PublicHome: React.FC = () => {
           <Reveal className={`transition-all duration-1000 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-xl'}`}>
             <div className="max-w-5xl">
               <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-6">
-                Solve it. Properly.
+                {t.heroH1a} {t.heroH1b}
               </h1>
               <h2 className="text-5xl md:text-7xl lg:text-8xl font-black italic tracking-tight mb-10">
-                <span className="text-orange-500">SOMADHAN.</span>
+                <span className="text-orange-500">{t.heroBrand}</span>
               </h2>
               <p className="max-w-2xl text-lg md:text-xl opacity-60 leading-relaxed mb-12">
-                From plumbing and electrical work to construction and repairs — one call, one system, complete resolution.
+                {t.heroDescExact}
               </p>
               <button 
                 onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
@@ -314,7 +314,7 @@ const PublicHome: React.FC = () => {
                 <div style={{ transform: `translate3d(${parallax.x * 6}px, ${parallax.y * 6}px, 0)` }} className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
                   <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
                 </div>
-                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">Start Service Request</span>
+                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
               </button>
             </div>
           </Reveal>
