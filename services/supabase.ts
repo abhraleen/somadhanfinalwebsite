@@ -6,6 +6,6 @@ export function getSupabaseClient(): SupabaseClient | null {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
   if (!url || !key) return null;
-  if (!client) client = createClient(url, key, { auth: { persistSession: false } });
+  if (!client) client = createClient(url, key, { auth: { persistSession: true, autoRefreshToken: true } });
   return client;
 }

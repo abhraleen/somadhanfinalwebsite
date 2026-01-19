@@ -5,6 +5,7 @@ import { EnquiryStatus } from '../types';
 import { translations } from '../translations';
 import { useApp } from '../App';
 import { useToast } from '../hooks/useToast';
+import { getSupabaseClient } from '../services/supabase';
 
 interface AdminDashboardProps {
   onLogout: () => void;
@@ -79,7 +80,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
           </div>
           <button 
-            onClick={onLogout}
+            onClick={() => {
+              const supabase = getSupabaseClient();
+              if (supabase) supabase.auth.signOut();
+              onLogout();
+            }}
             className={`w-full py-4 text-[10px] uppercase tracking-[0.4em] font-black border rounded-lg hover:bg-red-500 hover:border-red-500 hover:text-white transition-all duration-300 ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
           >
             Terminal Exit

@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../App';
 import { translations } from '../translations';
+import { getSupabaseClient } from '../services/supabase';
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -19,18 +20,31 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
   const [error, setError] = useState('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsAuthenticating(true);
-    
-    setTimeout(() => {
-      if (email === 'amol@somadhan.com' && password === 'admin123') {
-        onLogin();
-      } else {
-        setError('ACCESS DENIED: INVALID SYSTEM CREDENTIALS.');
-        setIsAuthenticating(false);
-      }
-    }, 1500);
+    setError('');
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      setError('System not connected to Command Center.');
+      setIsAuthenticating(false);
+      return;
+    }
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.session) {
+      setError('ACCESS DENIED: INVALID SYSTEM CREDENTIALS.');
+      setIsAuthenticating(false);
+      return;
+    }
+    const user = data.user;
+    const { data: admins } = await supabase.from('admins').select('user_id').eq('user_id', user.id).limit(1);
+    if (!admins || admins.length === 0) {
+      await supabase.auth.signOut();
+      setError('ACCESS DENIED: NOT AUTHORIZED FOR ADMIN PANEL.');
+      setIsAuthenticating(false);
+      return;
+    }
+    onLogin();
   };
 
   // Keyboard shortcut: Escape to return to public terminal
@@ -103,7 +117,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onLogin }) => {
         <div className="mt-12 text-center flex flex-col gap-6">
           <div className={`p-6 border rounded-2xl ${theme === 'dark' ? 'border-white/5 bg-white/[0.02]' : 'border-black/5 bg-black/[0.02]'}`}>
             <p className="text-[10px] uppercase font-black opacity-20 tracking-widest mb-3">Dev / Owner Access:</p>
-            <code className="text-[10px] font-black text-orange-500/60 tracking-widest">amol@somadhan.com / admin123</code>
+            <code className="text-[10px] font-black text-orange-500/60 tracking-widest">Use your admin email / password</code>
           </div>
           <a href="#/" className="text-[10px] uppercase tracking-widest opacity-20 hover:opacity-100 transition-opacity font-black">Return to Public Terminal</a>
         </div>

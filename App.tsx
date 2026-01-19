@@ -7,6 +7,7 @@ import AdminDashboard from './views/AdminDashboard';
 import AdminLogin from './views/AdminLogin';
 import { ADMIN_AUTH_KEY } from './constants';
 import { Language } from './translations';
+import { getSupabaseClient } from './services/supabase';
 
 interface AppContextType {
   language: Language;
@@ -32,7 +33,15 @@ const App: React.FC = () => {
     const token = localStorage.getItem(ADMIN_AUTH_KEY);
     if (token === 'authenticated') {
       setIsAdminAuthenticated(true);
+      return;
     }
+    const supabase = getSupabaseClient();
+    supabase?.auth.getSession().then(({ data }) => {
+      if (data.session) {
+        localStorage.setItem(ADMIN_AUTH_KEY, 'authenticated');
+        setIsAdminAuthenticated(true);
+      }
+    });
   }, []);
 
   useEffect(() => {

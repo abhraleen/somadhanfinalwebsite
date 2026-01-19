@@ -185,27 +185,24 @@ const PublicHome: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (phone.length < 10 || !name || !address) return;
+    if (phone.length < 10 || !name || !address || !selectedService) return;
     setIsSubmitting(true);
-    setTimeout(() => {
-      const enquiry = {
-        service: selectedService!.type,
-        category: (selectedOption || 'General') as any,
-        landCondition: landCondition as any,
-        phone,
-        name,
-        address,
-        preferredDate: preferredDate || undefined,
-        preferredTime: preferredTime || undefined,
-        notes: notes || undefined,
-      };
-      saveEnquiry(enquiry);
-      setIsSubmitting(false);
+    const enquiry = {
+      service: selectedService.type,
+      category: (selectedOption || 'General') as any,
+      landCondition: landCondition as any,
+      phone,
+      name,
+      address,
+      preferredDate: preferredDate || undefined,
+      preferredTime: preferredTime || undefined,
+      notes: notes || undefined,
+    };
+    try {
+      await saveEnquiry(enquiry);
       setStep(4);
       pushToast(t.linkedEngaged, 'success');
-
-      // Open WhatsApp with prefilled message to owner
-      const svc = t.services[selectedService!.type as keyof typeof t.services];
+      const svc = t.services[selectedService.type as keyof typeof t.services];
       const cats = t.categories[(selectedOption || 'General') as keyof typeof t.categories];
       const land = landCondition ? t.categories[landCondition as keyof typeof t.categories] : '';
       const lines = [
@@ -222,7 +219,9 @@ const PublicHome: React.FC = () => {
       ].filter(Boolean).join('\n');
       const url = `https://wa.me/${OWNER_WHATSAPP}?text=${encodeURIComponent(lines)}`;
       window.open(url, '_blank', 'noopener');
-    }, 1200);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resetFlow = () => {
