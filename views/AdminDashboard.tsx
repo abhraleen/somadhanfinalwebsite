@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useEnquiries } from '../hooks/useEnquiries';
-import { EnquiryStatus } from '../types';
+import { Enquiry, EnquiryStatus } from '../types';
 import { translations } from '../translations';
 import { useApp } from '../App';
 import { useToast } from '../hooks/useToast';
@@ -12,12 +11,44 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
-  const { enquiries, updateEnquiryStatus, deleteEnquiry } = useEnquiries();
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const { language, setLanguage, theme, toggleTheme } = useApp();
   const t = translations[language];
   const [filter, setFilter] = useState<EnquiryStatus | 'ALL'>('ALL');
   const { pushToast } = useToast();
   const [entered, setEntered] = useState(false);
+  const supabase = getSupabaseClient();
+
+  const fetchEnquiries = async () => {
+    if (!supabase) {
+      console.error('Supabase not configured. Cannot fetch enquiries.');
+      return;
+    }
+    const { data, error } = await supabase
+      .from('enquiries')
+      .select('*')
+      .order('created_at', { ascending: false });
+    if (error) {
+      console.error('Failed to fetch enquiries:', error);
+      pushToast('Failed to load enquiries', 'error');
+      return;
+    }
+    const mapped: Enquiry[] = (data || []).map((row: any) => ({
+      id: row.id,
+      service: row.service,
+      category: row.category,
+      landCondition: row.land_condition ?? undefined,
+      phone: row.phone,
+      name: row.name ?? undefined,
+      address: row.address ?? undefined,
+      preferredDate: row.preferred_date ?? undefined,
+      preferredTime: row.preferred_time ?? undefined,
+      notes: row.notes ?? undefined,
+      createdAt: row.created_at,
+      status: row.status as EnquiryStatus,
+    }));
+    setEnquiries(mapped);
+  };
 
   const filteredEnquiries = filter === 'ALL' 
     ? enquiries 
@@ -32,13 +63,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setEntered(true));
+    fetchEnquiries(); // Load on page enter
     return () => cancelAnimationFrame(id);
   }, []);
 
   return (
     <div className={`min-h-screen flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
       {/* Dynamic Sidebar */}
-      <aside className={`w-80 border-r flex flex-col p-10 fixed h-full z-50 ${theme === 'dark' ? 'bg-black border-white/5' : 'bg-gray-50 border-black/5'}`}>
+      <aside className={`w-80 border-r flex flex-col p-10 fixed h-full z-50 ${theme === 'dark' ? 'bg-black/80 border-white/5 backdrop-blur-md' : 'bg-gray-50 border-black/5'}`}>
         <div className="flex items-center gap-4 mb-20">
           <Link to="/" className="text-2xl font-black uppercase italic tracking-tighter">{t.brand}</Link>
           <div className="px-2 py-0.5 bg-orange-500 text-[8px] font-black rounded uppercase text-white">Admin</div>
@@ -96,8 +128,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       <main className={`flex-1 ml-80 p-12 bg-grid-pattern overflow-y-auto page-enter ${entered ? 'active' : ''}`}>
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div>
-            <h1 className="text-5xl font-black uppercase italic tracking-tighter mb-4">Command Center</h1>
-            <p className="text-xs uppercase tracking-[0.4em] font-bold opacity-20">Active resolution log / {filteredEnquiries.length} Targets</p>
+            <h1 className="text-5xl md:text-6xl font-black uppercase italic tracking-tighter mb-4">Command Center</h1>
+            <p className="text-xs uppercase tracking-[0.4em] font-bold opacity-30">Active resolution log / {filteredEnquiries.length} Targets</p>
           </div>
           <div className="flex items-center gap-4">
             <Link
@@ -108,7 +140,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
               Public Terminal
             </Link>
 
-            <div className={`flex gap-2 p-1 rounded-xl border ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-black/5 border-black/5'}`}>
+            <div className={`flex gap-2 p-1 rounded-xl border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}>
             {['ALL', ...Object.values(EnquiryStatus)].map(s => (
               <button
                 key={s}
@@ -130,7 +162,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           ) : (
             <div className={`border rounded-3xl overflow-hidden backdrop-blur-xl ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}>
               <table className="w-full text-left">
-                <thead className={`${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
+                <thead className={`${theme === 'dark' ? 'bg-white/80 text-black backdrop-blur-sm' : 'bg-black/80 text-white backdrop-blur-sm'}`}>
                   <tr>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Client</th>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Target Service</th>
@@ -143,7 +175,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Operation</th>
                   </tr>
                 </thead>
-                <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/5' : 'divide-black/5'}`}>
+                <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/10' : 'divide-black/10'}`}>
                   {filteredEnquiries.map((e) => (
                     <tr key={e.id} className="hover:bg-orange-500/5 transition-colors group">
                       <td className="px-10 py-8">
@@ -177,9 +209,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       <td className="px-10 py-8">
                         <select
                           value={e.status}
-                          onChange={(ev) => {
-                            updateEnquiryStatus(e.id, ev.target.value as EnquiryStatus);
+                          onChange={async (ev) => {
+                            const newStatus = ev.target.value as EnquiryStatus;
+                            if (!supabase) return;
+                            const { error } = await supabase.from('enquiries').update({ status: newStatus }).eq('id', e.id);
+                            if (error) {
+                              console.error('Status update failed:', error);
+                              pushToast('Failed to update status', 'error');
+                              return;
+                            }
                             pushToast('Status updated', 'info');
+                            fetchEnquiries();
                           }}
                           className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer border transition-all ${statusColors[e.status]} ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                         >
@@ -190,11 +230,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                       </td>
                       <td className="px-10 py-8">
                         <button 
-                          onClick={() => {
-                            if(confirm('Archive this log entry?')) {
-                              deleteEnquiry(e.id);
-                              pushToast('Entry archived', 'warning');
+                          onClick={async () => {
+                            if (!confirm('Archive this log entry?')) return;
+                            if (!supabase) return;
+                            const { error } = await supabase.from('enquiries').delete().eq('id', e.id);
+                            if (error) {
+                              console.error('Delete failed:', error);
+                              pushToast('Failed to archive entry', 'error');
+                              return;
                             }
+                            pushToast('Entry archived', 'warning');
+                            fetchEnquiries();
                           }}
                           className="text-[10px] uppercase font-black text-red-500 opacity-20 hover:opacity-100 tracking-widest transition-all"
                         >

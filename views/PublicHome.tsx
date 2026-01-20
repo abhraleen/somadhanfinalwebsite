@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
 import { SERVICES, OWNER_WHATSAPP } from '../constants';
@@ -9,6 +10,8 @@ import { translations } from '../translations';
 import { useApp } from '../App';
 import Reveal from '../components/Reveal';
 import ResolutionFlow from '../components/ResolutionFlow';
+// Removed react text animations for a static hero
+import { getSupabaseClient } from '../services/supabase';
 
 const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { language } = useApp();
@@ -32,14 +35,14 @@ const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
       if (iteration >= fullText.length + 1) {
         clearInterval(interval);
         setTimeout(() => setPhase(2), 500);
-        setTimeout(onComplete, 2500);
+        setTimeout(onComplete, 500);
       }
     }, 40);
     return () => clearInterval(interval);
   }, [fullText]);
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-[#0A0A0A] flex flex-col items-center justify-center transition-opacity duration-1000 ${phase === 2 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
+    <div className={`fixed inset-0 z-[100] bg-[#0A0A0A] flex flex-col items-center justify-center transition-opacity duration-500 ${phase === 2 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
       <div className="water-bg"></div>
       <div className="relative flex flex-col items-center">
         <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden water-text">
@@ -88,6 +91,7 @@ const PublicHome: React.FC = () => {
   const { pushToast } = useToast();
   const [entered, setEntered] = useState(false);
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
+  const [scrollParallax, setScrollParallax] = useState({ y: 0, scale: 0 });
   const [scrolled, setScrolled] = useState(false);
   
   const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -145,7 +149,13 @@ const PublicHome: React.FC = () => {
   // Header blur/glass on scroll
   useEffect(() => {
     const onScroll = () => {
-      setScrolled(window.scrollY > 10);
+      const y = window.scrollY;
+      setScrolled(y > 10);
+      const h = window.innerHeight || 800;
+      const p = Math.min(Math.max(y / h, 0), 1);
+      const isMobile = window.matchMedia('(max-width: 768px)').matches;
+      const factor = isMobile ? 6 : 12;
+      setScrollParallax({ y: p * factor, scale: p * 0.01 });
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
@@ -170,6 +180,31 @@ const PublicHome: React.FC = () => {
     target.style.setProperty('--tiltY', `0deg`);
   };
 
+  // Touch support for mobile: mimic hover/tilt with touch interactions
+  const onCardTouchStart = (e: React.TouchEvent<HTMLElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    target.classList.add('touch-active');
+  };
+  const onCardTouchMove = (e: React.TouchEvent<HTMLElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    const touch = e.touches[0];
+    if (!touch) return;
+    const rect = target.getBoundingClientRect();
+    const nx = (touch.clientX - rect.left) / rect.width - 0.5;
+    const ny = (touch.clientY - rect.top) / rect.height - 0.5;
+    const maxDeg = 6;
+    const tiltY = nx * maxDeg;
+    const tiltX = -ny * maxDeg;
+    target.style.setProperty('--tiltX', `${tiltX}deg`);
+    target.style.setProperty('--tiltY', `${tiltY}deg`);
+  };
+  const onCardTouchEnd = (e: React.TouchEvent<HTMLElement>) => {
+    const target = e.currentTarget as HTMLElement;
+    target.classList.remove('touch-active');
+    target.style.setProperty('--tiltX', `0deg`);
+    target.style.setProperty('--tiltY', `0deg`);
+  };
+
   const handleServiceSelect = (service: ServiceDefinition) => {
     setSelectedService(service);
     if (service.options.length === 1 && !service.requiresLandLogic) {
@@ -187,19 +222,32 @@ const PublicHome: React.FC = () => {
     e.preventDefault();
     if (phone.length < 10 || !name || !address || !selectedService) return;
     setIsSubmitting(true);
-    const enquiry = {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      console.error('Supabase client is not configured. Aborting submit.');
+      alert('Submission failed: service is currently offline. Please try again later.');
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Minimal payload per requirement
+    const payload = {
       service: selectedService.type,
       category: (selectedOption || 'General') as any,
-      landCondition: landCondition as any,
       phone,
       name,
       address,
-      preferredDate: preferredDate || undefined,
-      preferredTime: preferredTime || undefined,
-      notes: notes || undefined,
+      notes: notes || null,
     };
     try {
-      await saveEnquiry(enquiry);
+      const { error } = await supabase.from('enquiries').insert(payload);
+      if (error) {
+        console.error('Insert failed:', error);
+        alert('Could not save your request. Please try again.');
+        return; // DO NOT open WhatsApp on failure
+      }
+
+      // Insert succeeded: proceed to WhatsApp
       setStep(4);
       pushToast(t.linkedEngaged, 'success');
       const svc = t.services[selectedService.type as keyof typeof t.services];
@@ -241,7 +289,7 @@ const PublicHome: React.FC = () => {
   const progressPercentage = (step / 4) * 100;
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
+    <div className={`min-h-screen transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-black'} ${language === 'bn' ? 'lang-bn' : ''}`}>
       {!introDone && <IntroOverlay onComplete={() => setIntroDone(true)} />}
       {/* Keyboard shortcuts: Escape to go back / reset */}
       {useEffect(() => {
@@ -265,20 +313,30 @@ const PublicHome: React.FC = () => {
       </div>
 
       {/* Dynamic Header */}
-      <nav className={`p-6 md:p-10 flex justify-between items-center fixed top-0 w-full z-50 transition-all duration-500 ${introDone ? 'opacity-100' : 'opacity-0 translate-y--10'} ${scrolled ? (theme === 'dark' ? 'bg-black/30 backdrop-blur-md' : 'bg-white/40 backdrop-blur-md') : 'bg-transparent'} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+      <nav className={`p-6 md:p-10 flex justify-between items-center fixed top-0 w-full z-50 transition-all duration-500 ${introDone ? 'opacity-100' : 'opacity-0 translate-y--10'} ${scrolled ? (theme === 'dark' ? 'bg-black/40 backdrop-blur-md' : 'bg-white/60 backdrop-blur-md') : 'bg-transparent'} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
         <div className="flex items-center gap-4">
-          <div className="text-2xl font-black tracking-tighter uppercase italic">{t.brand}</div>
+          <div className={`text-2xl font-black tracking-tighter ${language === 'bn' ? '' : 'uppercase italic'}`}>{t.brand}</div>
           <div className="w-2 h-2 rounded-full bg-orange-500 animate-pulse hidden md:block"></div>
         </div>
         <div className="flex items-center gap-4 md:gap-8">
-          <div className="flex items-center bg-white/5 p-1 rounded-full border border-white/10 text-[10px] font-black uppercase tracking-widest backdrop-blur-md">
-            <button onClick={() => setLanguage('en')} className={`px-4 py-2 rounded-full transition-all duration-500 ${language === 'en' ? 'bg-white text-black' : 'opacity-40 hover:opacity-100'}`}>EN</button>
-            <button onClick={() => setLanguage('bn')} className={`px-4 py-2 rounded-full transition-all duration-500 ${language === 'bn' ? 'bg-white text-black' : 'opacity-40 hover:opacity-100'}`}>বাংলা</button>
+          <div className={`flex items-center p-1 rounded-full border text-[10px] font-black uppercase tracking-widest backdrop-blur-md ${theme === 'dark' ? 'bg-white/10 border-white/20' : 'bg-black/10 border-black/20'}`}>
+            <button
+              onClick={() => setLanguage('en')}
+              className={`px-4 py-2 rounded-full transition-all duration-500 ${language === 'en' ? (theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white') : 'opacity-40 hover:opacity-100'}`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLanguage('bn')}
+              className={`px-4 py-2 rounded-full transition-all duration-500 ${language === 'bn' ? (theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white') : 'opacity-40 hover:opacity-100'}`}
+            >
+              বাংলা
+            </button>
           </div>
-          <button onClick={toggleTheme} className="p-3 rounded-full border border-white/10 bg-white/5 hover:bg-orange-500 hover:text-white transition-all duration-500 backdrop-blur-md">
+          <button onClick={toggleTheme} className={`p-3 rounded-full border transition-all duration-500 backdrop-blur-md ${theme === 'dark' ? 'border-white/10 bg-white/5' : 'border-black/10 bg-black/5'}`}>
             {theme === 'dark' ? '☀' : '☾'}
           </button>
-          <Link to="/admin" className="hidden sm:block text-[10px] uppercase tracking-widest bg-white/10 hover:bg-orange-500 hover:text-white border border-white/20 px-8 py-4 rounded-full transition-all duration-700 font-black backdrop-blur-md">
+          <Link to="/admin" className={`hidden sm:block text-[10px] uppercase tracking-widest px-8 py-4 rounded-full transition-all duration-700 font-black backdrop-blur-md border ${theme === 'dark' ? 'bg-white/10 border-white/20 hover:bg-orange-500 hover:text-white' : 'bg-black/10 border-black/20 hover:bg-orange-500 hover:text-white'}`}>
             {t.businessAccess}
           </Link>
         </div>
@@ -294,37 +352,53 @@ const PublicHome: React.FC = () => {
         }}
         className={`h-screen px-8 md:px-24 grid-pattern relative overflow-hidden z-10 flex items-center`}
       >
-        <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <Reveal className={`transition-all duration-1000 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-110 blur-xl'}`}>
-            <div className="max-w-5xl">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[0.95] mb-6">
-                {t.heroH1a} {t.heroH1b}
-              </h1>
-              <h2 className="text-5xl md:text-7xl lg:text-8xl font-black italic tracking-tight mb-10">
-                <span className="text-orange-500">{t.heroBrand}</span>
-              </h2>
-              <p className="max-w-2xl text-lg md:text-xl opacity-60 leading-relaxed mb-12">
-                {t.heroDescExact}
-              </p>
-              <button 
-                onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                className="group inline-flex items-center gap-6 btn-magnetic"
-              >
-                <div style={{ transform: `translate3d(${parallax.x * 6}px, ${parallax.y * 6}px, 0)` }} className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 shadow-2xl ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+        {/* Orange flowing background only for hero section, with subtle parallax */}
+        <div
+          className="hero-orange-flow parallax-layer"
+          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.4}px` }}
+        ></div>
+        <div className="w-full flex items-center justify-center">
+          <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
+            <div className="max-w-5xl mx-auto">
+              <Reveal staggerChildren>
+                <motion.h1
+                  className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 120, damping: 24, duration: 0.6 }}
+                >
+                  {`${t.heroH1a} ${t.heroH1b}`}
+                </motion.h1>
+                <div className="mb-10">
+                  <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
                 </div>
-                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
-              </button>
+                <motion.p
+                  className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12"
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'spring', stiffness: 140, damping: 22, duration: 0.6, delay: 0.08 }}
+                >
+                  {t.heroDescExact}
+                </motion.p>
+                <button 
+                  onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                  className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
+                  style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
+                >
+                  <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                  </div>
+                  <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
+                </button>
+              </Reveal>
             </div>
           </Reveal>
-          <div className="hidden md:block">
-            <ResolutionFlow className="w-full" width={520} height={360} />
-          </div>
+          {/* Side animation removed to center focus on hero text */}
         </div>
       </section>
 
       {/* Enquiry Flow Section */}
-      <section ref={flowRef} className={`min-h-screen py-40 px-8 md:px-24 relative overflow-hidden transition-all duration-1000 z-20 ${theme === 'dark' ? 'bg-white text-black' : 'bg-[#111] text-white'}`}>
+      <section ref={flowRef} className={`min-h-screen py-40 px-8 md:px-24 relative overflow-hidden transition-all duration-500 z-20 ${theme === 'dark' ? 'bg-[#111] text-white' : 'bg-[#F9FAFB] text-black'}`}>
         <div className="fixed top-0 left-0 h-1.5 bg-orange-500 transition-all duration-1000 z-[60]" style={{ width: `${progressPercentage}%` }}></div>
         {/* Floating Back Button */}
         {step > 0 && step < 4 && (
@@ -367,15 +441,18 @@ const PublicHome: React.FC = () => {
 
           <div className="relative">
             {step === 0 && (
-              <Reveal staggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 step-enter">
+              <Reveal staggerChildren className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8 step-enter">
                 {SERVICES.map((s, idx) => (
                   <button
                     key={s.type}
                     style={{ ['--stagger-index' as any]: idx }}
                     onMouseMove={onCardMouseMove}
                     onMouseLeave={onCardMouseLeave}
+                    onTouchStart={onCardTouchStart}
+                    onTouchMove={onCardTouchMove}
+                    onTouchEnd={onCardTouchEnd}
                     onClick={() => handleServiceSelect(s)}
-                    className={`group h-[320px] border-2 flex flex-col items-start justify-end p-10 transition-all duration-700 relative overflow-hidden service-card ${theme === 'dark' ? 'border-black/5 hover:border-black text-black shadow-2xl shadow-black/0 hover:shadow-black/5' : 'border-white/5 hover:border-white text-white shadow-2xl shadow-white/0 hover:shadow-white/5'}`}
+                    className={`group min-h-[260px] md:h-[320px] border flex flex-col items-start justify-end p-8 md:p-10 transition-all duration-700 relative overflow-hidden service-card ${theme === 'dark' ? 'bg-[#111] text-white border-white/10 hover:border-white/20' : 'bg-white text-black border-black/10 hover:border-black/20'}`}
                   >
                     <div className="absolute top-10 right-10 opacity-5 group-hover:opacity-20 transition-all duration-700 transform group-hover:scale-125 group-hover:-rotate-12">
                       <span className="text-7xl font-black italic">{idx + 1}</span>
@@ -384,11 +461,7 @@ const PublicHome: React.FC = () => {
                     <span className="text-[10px] uppercase font-black tracking-[0.4em] opacity-30 group-hover:opacity-100 transition-all duration-700 mb-3">Protocol: Local</span>
                     <span className="text-2xl md:text-3xl font-black leading-tight uppercase italic">{t.services[s.type as keyof typeof t.services]}</span>
                     
-                    <div className={`absolute bottom-0 left-0 w-full h-0 transition-all duration-700 -z-10 ${theme === 'dark' ? 'bg-black' : 'bg-white' } group-hover:h-full`}></div>
-                    <div className={`transition-all duration-700 absolute inset-0 p-10 flex flex-col justify-end opacity-0 group-hover:opacity-100 pointer-events-none translate-y-10 group-hover:translate-y-0 ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-                       <span className="text-[10px] uppercase font-black tracking-[0.5em] mb-3">Initialize Now</span>
-                       <span className="text-2xl md:text-3xl font-black leading-tight uppercase italic">{t.services[s.type as keyof typeof t.services]}</span>
-                    </div>
+                      <div className={`absolute bottom-0 left-0 w-full h-0 transition-all duration-700 -z-10 ${theme === 'dark' ? 'bg-black/5' : 'bg-white/5' } group-hover:h-full`}></div>
                   </button>
                 ))}
               </Reveal>
@@ -480,7 +553,7 @@ const PublicHome: React.FC = () => {
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="Your full name"
-                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                      className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                     />
                   </div>
                   <div>
@@ -491,7 +564,7 @@ const PublicHome: React.FC = () => {
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
                       placeholder="Apartment / Street / City"
-                      className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                      className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                     />
                   </div>
                   <div>
@@ -509,7 +582,7 @@ const PublicHome: React.FC = () => {
                         min={todayISO()}
                         value={preferredDate}
                         onChange={(e) => setPreferredDate(e.target.value)}
-                        className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                        className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                       />
                     </div>
                   </div>
@@ -548,7 +621,7 @@ const PublicHome: React.FC = () => {
                               if (num >= 1 && num <= 12) setTimeHour(String(num));
                             }}
                             placeholder="6"
-                            className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                            className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                           />
                         </div>
                         <div className="flex-1">
@@ -574,11 +647,11 @@ const PublicHome: React.FC = () => {
                           <div className="flex gap-2">
                             <button type="button"
                               onClick={() => setTimePeriod('AM')}
-                              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'AM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'}`}
+                              className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'AM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}
                             >AM</button>
                             <button type="button"
                               onClick={() => setTimePeriod('PM')}
-                              className={`px-4 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'PM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-black/5 border-black/10' : 'bg-white/5 border-white/10'}`}
+                              className={`px-4 py-3 text-[10px] font-black uppercase tracking-widest rounded-lg border ${timePeriod === 'PM' ? 'bg-orange-500 text-white border-orange-500' : theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}
                             >PM</button>
                           </div>
                         </div>
@@ -602,7 +675,7 @@ const PublicHome: React.FC = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     inputMode="numeric"
-                    className={`w-full bg-transparent border-b-[16px] text-5xl md:text-[12rem] font-black py-16 pl-32 md:pl-64 focus:outline-none focus:border-orange-500 transition-all duration-1000 placeholder:opacity-5 ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    className={`w-full bg-transparent border-b-[12px] text-5xl md:text-[10rem] font-black py-14 pl-32 md:pl-64 focus:outline-none focus:border-orange-500 transition-all duration-1000 placeholder:opacity-5 ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                   />
                   <div className="absolute bottom-0 left-0 h-4 bg-orange-500 transition-all duration-1000 w-0 group-focus-within:w-full"></div>
                 </div>
@@ -613,13 +686,13 @@ const PublicHome: React.FC = () => {
                     onChange={(e) => setNotes(e.target.value)}
                     placeholder="Brief description of the work"
                     rows={3}
-                    className={`w-full bg-transparent border-b-4 text-xl font-black py-4 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-black' : 'border-white'}`}
+                    className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                   />
                 </div>
                 <div className="mt-20 flex flex-col md:flex-row items-center gap-12">
                   <button
                     disabled={phone.length < 10 || !name || !address || isSubmitting}
-                    className={`w-full md:w-auto px-24 py-10 text-2xl font-black uppercase italic transition-all duration-700 flex items-center justify-center gap-6 ${theme === 'dark' ? 'bg-black text-white shadow-2xl' : 'bg-white text-black shadow-2xl shadow-black/5'} hover:bg-orange-500 hover:text-white disabled:opacity-10 disabled:grayscale hover:scale-105 active:scale-95`}
+                    className={`w-full md:w-auto px-24 py-10 text-2xl font-black uppercase italic transition-all duration-700 flex items-center justify-center gap-6 ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} hover:bg-orange-500 hover:text-white disabled:opacity-10 disabled:grayscale hover:scale-105 active:scale-95 btn-premium`}
                   >
                     {isSubmitting ? (
                       <>
@@ -659,8 +732,8 @@ const PublicHome: React.FC = () => {
         </div>
       </section>
 
-      {/* Authority Section with Reveal */}
-      <section ref={el => revealRefs.current[0] = el} className="py-72 px-8 md:px-24 relative overflow-hidden reveal z-30">
+      {/* Authority Section with Reveal and alternating surface for contrast */}
+      <section ref={el => revealRefs.current[0] = el} className={`py-72 px-8 md:px-24 relative overflow-hidden reveal z-30 ${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-orange-500/40 to-transparent"></div>
         <div className="grid lg:grid-cols-2 gap-40 items-center max-w-7xl mx-auto">
           <div>
