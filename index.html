@@ -13,20 +13,86 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&family=Noto+Sans+Bengali:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
     <style>
-            /* Orangish flowing gradient overlay for hero */
+            /* Premium orangish flowing gradient overlay for hero */
             @keyframes orangeFlow {
               0% { background-position: 0% 50%; }
               50% { background-position: 100% 50%; }
               100% { background-position: 0% 50%; }
             }
+            @keyframes orangeFlowSecondary {
+              0% { background-position: 0 0; }
+              50% { background-position: 100px 50px; }
+              100% { background-position: 0 0; }
+            }
+            @keyframes pulseGlow {
+              0%, 100% { opacity: 0.25; }
+              50% { opacity: 0.45; }
+            }
+            @keyframes orangeRotate {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            @keyframes grainShift {
+              0% { background-position: 0 0, 0 0; }
+              50% { background-position: 50px -30px, -40px 20px; }
+              100% { background-position: 0 0, 0 0; }
+            }
             .hero-orange-flow {
               position: absolute;
               inset: 0;
               pointer-events: none;
-              background: linear-gradient(120deg, rgba(249,115,22,0.10), rgba(249,115,22,0.02), rgba(249,115,22,0.10));
-              background-size: 200% 200%;
-              animation: orangeFlow 28s var(--ease-in-out-quint) infinite;
-              mix-blend-mode: normal;
+              background:
+                radial-gradient(1000px 600px at 30% 50%, rgba(249,115,22,0.14), transparent 60%),
+                radial-gradient(800px 500px at 70% 60%, rgba(249,115,22,0.08), transparent 60%),
+                linear-gradient(120deg, rgba(249,115,22,0.10), rgba(249,115,22,0.03), rgba(249,115,22,0.10));
+              background-size: 200% 200%, 180% 180%, 200% 200%;
+              animation: orangeFlow 9s var(--ease-in-out-quint) infinite;
+              mix-blend-mode: soft-light;
+            }
+            .hero-orange-flow::after {
+              content: "";
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              background: repeating-linear-gradient(135deg, rgba(249,115,22,0.06) 0px, rgba(249,115,22,0.06) 2px, transparent 2px, transparent 6px);
+              animation: orangeFlowSecondary 14s var(--ease-in-out-quint) infinite;
+              mix-blend-mode: screen;
+              opacity: 0.35;
+            }
+            .hero-orange-bloom {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              background: radial-gradient(600px 300px at 50% 50%, rgba(249,115,22,0.22), transparent 65%);
+              animation: pulseGlow 10s ease-in-out infinite;
+            }
+            /* New: subtle conic waves overlay for premium motion */
+            .hero-orange-waves {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              background:
+                conic-gradient(from 210deg at 50% 50%, rgba(249,115,22,0.12), rgba(249,115,22,0.02), rgba(249,115,22,0.12));
+              filter: blur(24px);
+              mix-blend-mode: soft-light;
+              opacity: 0.6;
+              transform-origin: 50% 50%;
+              animation: orangeRotate 18s linear infinite;
+              /* Mask to keep waves soft towards edges */
+              -webkit-mask-image: radial-gradient(800px 400px at 50% 50%, rgba(255,255,255,0.9), rgba(255,255,255,0.0) 70%);
+                      mask-image: radial-gradient(800px 400px at 50% 50%, rgba(255,255,255,0.9), rgba(255,255,255,0.0) 70%);
+            }
+            /* New: fine grain texture to reduce banding and add depth */
+            .hero-orange-grain {
+              position: absolute;
+              inset: 0;
+              pointer-events: none;
+              background:
+                repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 2px),
+                repeating-linear-gradient(90deg, rgba(0,0,0,0.02) 0px, rgba(0,0,0,0.02) 1px, transparent 1px, transparent 2px);
+              mix-blend-mode: overlay;
+              opacity: 0.15;
+              animation: grainShift 8s var(--ease-in-out-quint) infinite;
             }
       :root {
         --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -298,7 +364,10 @@
         .service-card { min-height: 260px; }
         .scan-line { display: none; }
         .hero-bg { filter: blur(8px); }
-        .hero-orange-flow { opacity: 0.6; }
+        .hero-orange-flow { opacity: 0.7; }
+        .hero-orange-bloom { opacity: 0.28; }
+        .hero-orange-waves { opacity: 0.5; filter: blur(18px); }
+        .hero-orange-grain { opacity: 0.12; }
       }
       @media (max-width: 414px) {
         .service-card { min-height: 240px; }

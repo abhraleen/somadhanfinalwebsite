@@ -1,6 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import WritingText from '../components/WritingText';
 import { useToast } from '../hooks/useToast';
 import { Link } from 'react-router-dom';
 import { SERVICES, OWNER_WHATSAPP } from '../constants';
@@ -221,6 +222,11 @@ const PublicHome: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (phone.length < 10 || !name || !address || !selectedService) return;
+    if (selectedService.type === ServiceType.EVENT && (!notes || !notes.trim())) {
+      // Require brief description for Any Event
+      pushToast('Please add a brief description of the event.', 'error');
+      return;
+    }
     setIsSubmitting(true);
     const supabase = getSupabaseClient();
     if (!supabase) {
@@ -308,8 +314,14 @@ const PublicHome: React.FC = () => {
 
       {/* Background Cinematic Elements */}
       <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-[20%] -left-[10%] w-[600px] h-[600px] bg-orange-600/5 blur-[120px] rounded-full floating-blob"></div>
-        <div className="absolute bottom-[10%] -right-[5%] w-[400px] h-[400px] bg-orange-500/5 blur-[100px] rounded-full floating-blob" style={{ animationDelay: '-5s' }}></div>
+        <div
+          className="absolute top-[20%] -left-[10%] w-[480px] h-[480px] bg-orange-600/5 blur-[90px] rounded-full floating-blob"
+          style={{ animationDuration: '9s' }}
+        ></div>
+        <div
+          className="absolute bottom-[10%] -right-[5%] w-[320px] h-[320px] bg-orange-500/5 blur-[80px] rounded-full floating-blob"
+          style={{ animationDelay: '-5s', animationDuration: '9s' }}
+        ></div>
       </div>
 
       {/* Dynamic Header */}
@@ -352,47 +364,84 @@ const PublicHome: React.FC = () => {
         }}
         className={`h-screen px-8 md:px-24 grid-pattern relative overflow-hidden z-10 flex items-center`}
       >
-        {/* Orange flowing background only for hero section, with subtle parallax */}
+        {/* Premium orange layered background for hero with parallax */}
         <div
-          className="hero-orange-flow parallax-layer"
+          className="hero-orange-flow parallax-layer parallax-slow"
           style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.4}px` }}
         ></div>
+        <div
+          className="hero-orange-waves parallax-layer parallax-slow"
+          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.25}px` }}
+        ></div>
+        <div
+          className="hero-orange-bloom parallax-layer parallax-fast"
+          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.2}px` }}
+        ></div>
+        <div
+          className="hero-orange-grain parallax-layer"
+          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.1}px` }}
+        ></div>
         <div className="w-full flex items-center justify-center">
-          <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
-            <div className="max-w-5xl mx-auto">
-              <Reveal staggerChildren>
-                <motion.h1
-                  className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6"
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 120, damping: 24, duration: 0.6 }}
-                >
-                  {`${t.heroH1a} ${t.heroH1b}`}
-                </motion.h1>
-                <div className="mb-10">
-                  <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
-                </div>
-                <motion.p
-                  className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12"
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ type: 'spring', stiffness: 140, damping: 22, duration: 0.6, delay: 0.08 }}
-                >
-                  {t.heroDescExact}
-                </motion.p>
-                <button 
-                  onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                  className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
-                  style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
-                >
-                  <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+          {language === 'en' ? (
+            <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
+              <div className="max-w-5xl mx-auto">
+                <Reveal staggerChildren>
+                  <motion.h1
+                    className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6"
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 120, damping: 24, duration: 0.6 }}
+                  >
+                    <WritingText
+                      key={`hero-writing-${language}-${introDone ? 'intro' : 'pre'}`}
+                      text={`${t.heroH1a} ${t.heroH1b}`}
+                      spacing={8}
+                      transition={{ type: 'spring', bounce: 0, duration: 0.8, delay: 0.12 }}
+                    />
+                  </motion.h1>
+                  <div className="mb-10">
+                    <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
                   </div>
-                  <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
-                </button>
-              </Reveal>
+                  <motion.p
+                    className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12"
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ type: 'spring', stiffness: 140, damping: 22, duration: 0.6, delay: 0.08 }}
+                  >
+                    {t.heroDescExact}
+                  </motion.p>
+                  <button 
+                    onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                    className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
+                    style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
+                  >
+                    <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+                      <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                    </div>
+                    <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
+                  </button>
+                </Reveal>
+              </div>
+            </Reveal>
+          ) : (
+            <div className="text-center max-w-5xl mx-auto">
+              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6">{`${t.heroH1a} ${t.heroH1b}`}</h1>
+              <div className="mb-10">
+                <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
+              </div>
+              <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12">{t.heroDescExact}</p>
+              <button 
+                onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
+                style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
+              >
+                <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                </div>
+                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
+              </button>
             </div>
-          </Reveal>
+          )}
           {/* Side animation removed to center focus on hero text */}
         </div>
       </section>
@@ -680,18 +729,24 @@ const PublicHome: React.FC = () => {
                   <div className="absolute bottom-0 left-0 h-4 bg-orange-500 transition-all duration-1000 w-0 group-focus-within:w-full"></div>
                 </div>
                 <div className="mt-10">
-                  <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">Notes (optional)</label>
+                  <label className="text-[10px] uppercase font-black tracking-widest opacity-40 mb-3 block">
+                    {selectedService?.type === ServiceType.EVENT ? 'Brief Description (required for Any Event)' : 'Notes (optional)'}
+                  </label>
                   <textarea
+                    required={selectedService?.type === ServiceType.EVENT}
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Brief description of the work"
+                    placeholder={selectedService?.type === ServiceType.EVENT ? 'Brief description of the event' : 'Brief description of the work'}
                     rows={3}
                     className={`w-full bg-transparent border-b-4 text-xl md:text-2xl font-black py-4 md:py-5 focus:outline-none focus:border-orange-500 transition-all ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                   />
+                  {selectedService?.type === ServiceType.EVENT && (!notes || !notes.trim()) && (
+                    <p className="mt-2 text-[10px] text-red-500 font-black uppercase tracking-widest">This field is required for Any Event.</p>
+                  )}
                 </div>
                 <div className="mt-20 flex flex-col md:flex-row items-center gap-12">
                   <button
-                    disabled={phone.length < 10 || !name || !address || isSubmitting}
+                    disabled={phone.length < 10 || !name || !address || isSubmitting || (selectedService?.type === ServiceType.EVENT && (!notes || !notes.trim()))}
                     className={`w-full md:w-auto px-24 py-10 text-2xl font-black uppercase italic transition-all duration-700 flex items-center justify-center gap-6 ${theme === 'dark' ? 'bg-white/10 text-white' : 'bg-black/10 text-black'} hover:bg-orange-500 hover:text-white disabled:opacity-10 disabled:grayscale hover:scale-105 active:scale-95 btn-premium`}
                   >
                     {isSubmitting ? (

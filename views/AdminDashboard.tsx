@@ -69,8 +69,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
 
   return (
     <div className={`min-h-screen flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
-      {/* Dynamic Sidebar */}
-      <aside className={`w-80 border-r flex flex-col p-10 fixed h-full z-50 ${theme === 'dark' ? 'bg-black/80 border-white/5 backdrop-blur-md' : 'bg-gray-50 border-black/5'}`}>
+      {/* Dynamic Sidebar (hidden on mobile) */}
+      <aside className={`hidden md:flex md:w-80 border-r flex-col p-6 md:p-10 fixed md:static md:h-auto h-full z-50 ${theme === 'dark' ? 'bg-black/80 border-white/5 backdrop-blur-md' : 'bg-gray-50 border-black/5'}`}>
         <div className="flex items-center gap-4 mb-20">
           <Link to="/" className="text-2xl font-black uppercase italic tracking-tighter">{t.brand}</Link>
           <div className="px-2 py-0.5 bg-orange-500 text-[8px] font-black rounded uppercase text-white">Admin</div>
@@ -125,7 +125,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
       </aside>
 
       {/* Content Area */}
-      <main className={`flex-1 ml-80 p-12 bg-grid-pattern overflow-y-auto page-enter ${entered ? 'active' : ''}`}>
+      <main className={`flex-1 md:ml-80 ml-0 p-6 md:p-12 bg-grid-pattern overflow-y-auto page-enter ${entered ? 'active' : ''}`}>
+        {/* Mobile Top Bar */}
+        <div className="md:hidden sticky top-0 z-40 -mx-6 px-6 py-4 flex items-center justify-between backdrop-blur-md border-b"
+             style={{ borderColor: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' }}>
+          <Link to="/" className="text-xl font-black uppercase italic tracking-tighter">{t.brand}</Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleTheme}
+              className={`px-3 py-2 text-[10px] font-black rounded-lg border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}
+            >{theme === 'dark' ? 'Light' : 'Dark'}</button>
+            <button
+              onClick={async () => { const s = getSupabaseClient(); if (s) await s.auth.signOut(); onLogout(); }}
+              className="px-3 py-2 text-[10px] font-black rounded-lg border hover:bg-red-500 hover:text-white hover:border-red-500"
+            >Exit</button>
+          </div>
+        </div>
         <header className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-20">
           <div>
             <h1 className="text-5xl md:text-6xl font-black uppercase italic tracking-tighter mb-4">Command Center</h1>
@@ -161,7 +176,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
             </div>
           ) : (
             <div className={`border rounded-3xl overflow-hidden backdrop-blur-xl ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}>
-              <table className="w-full text-left">
+              <div className="overflow-x-auto">
+              <table className="min-w-[1000px] w-full text-left">
                 <thead className={`${theme === 'dark' ? 'bg-white/80 text-black backdrop-blur-sm' : 'bg-black/80 text-white backdrop-blur-sm'}`}>
                   <tr>
                     <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Client</th>
@@ -251,6 +267,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                   ))}
                 </tbody>
               </table>
+              </div>
             </div>
           )}
         </div>
