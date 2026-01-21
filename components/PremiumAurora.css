@@ -1,0 +1,108 @@
+.aurora-container {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: var(--aurora-intensity, 0.6);
+  contain: strict;
+}
+
+.aurora-layer {
+  position: absolute;
+  inset: -8%;
+  will-change: transform, opacity, background-position;
+}
+
+/* Bands */
+.band {
+  filter: blur(48px) saturate(115%);
+  transform: rotate(var(--aurora-angle, -24deg));
+  animation: aurora-drift var(--aurora-speed, 28s) linear infinite;
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+}
+
+.band-one {
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(0,0,0,0) 0%,
+      var(--aurora-color-1, #e28a65) 28%,
+      var(--aurora-color-2, #ffb58f) 48%,
+      var(--aurora-color-1, #e28a65) 68%,
+      rgba(0,0,0,0) 92%
+    );
+  opacity: 0.9;
+}
+
+.band-two {
+  background-image:
+    linear-gradient(
+      to right,
+      rgba(0,0,0,0) 0%,
+      var(--aurora-color-2, #ffb58f) 22%,
+      var(--aurora-color-1, #e28a65) 44%,
+      var(--aurora-color-2, #ffb58f) 66%,
+      rgba(0,0,0,0) 90%
+    );
+  opacity: 0.6;
+  animation-duration: calc(var(--aurora-speed, 28s) * 1.35);
+  animation-direction: reverse;
+}
+
+/* Glow wash */
+.glow {
+  filter: blur(80px);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(120% 80% at 35% 35%,
+      color-mix(in oklab, var(--aurora-color-2, #ffb58f) 40%, transparent) 0%,
+      transparent 70%
+    ),
+    radial-gradient(120% 80% at 65% 60%,
+      color-mix(in oklab, var(--aurora-color-1, #e28a65) 35%, transparent) 0%,
+      transparent 80%
+    );
+  opacity: 0.35;
+  animation: aurora-breathe calc(var(--aurora-speed, 28s) * 2.2) ease-in-out infinite;
+}
+
+/* Subtle texture */
+.grain {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255,255,255,0.03) 0px,
+    rgba(255,255,255,0.00) 2px,
+    rgba(255,255,255,0.03) 4px,
+    rgba(255,255,255,0.00) 8px
+  );
+  filter: contrast(110%) saturate(105%);
+  opacity: 0.12;
+  mix-blend-mode: soft-light;
+  animation: aurora-noise 12s steps(60) infinite;
+}
+
+@keyframes aurora-drift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@keyframes aurora-breathe {
+  0%, 100% { opacity: 0.25; transform: translate3d(0,0,0); }
+  50% { opacity: 0.45; transform: translate3d(2%, -1%, 0); }
+}
+
+@keyframes aurora-noise {
+  0% { transform: translate3d(0,0,0); }
+  100% { transform: translate3d(0.5%, -0.5%, 0); }
+}
+
+/* Edge fade to keep center focus */
+.aurora-container {
+  -webkit-mask-image: radial-gradient(80% 80% at 50% 50%, black 55%, transparent 100%);
+          mask-image: radial-gradient(80% 80% at 50% 50%, black 55%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .band, .glow, .grain { animation: none; }
+}

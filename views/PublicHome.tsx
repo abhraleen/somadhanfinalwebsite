@@ -13,6 +13,7 @@ import Reveal from '../components/Reveal';
 import ResolutionFlow from '../components/ResolutionFlow';
 // Removed react text animations for a static hero
 import { getSupabaseClient } from '../services/supabase';
+import PremiumAurora from '../components/PremiumAurora';
 
 const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { language } = useApp();
@@ -312,17 +313,7 @@ const PublicHome: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey);
       }, [step])}
 
-      {/* Background Cinematic Elements */}
-      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
-        <div
-          className="absolute top-[20%] -left-[10%] w-[480px] h-[480px] bg-orange-600/5 blur-[90px] rounded-full floating-blob"
-          style={{ animationDuration: '9s' }}
-        ></div>
-        <div
-          className="absolute bottom-[10%] -right-[5%] w-[320px] h-[320px] bg-orange-500/5 blur-[80px] rounded-full floating-blob"
-          style={{ animationDelay: '-5s', animationDuration: '9s' }}
-        ></div>
-      </div>
+      {/* Background Cinematic Elements removed per request (orange blur blobs) */}
 
       {/* Dynamic Header */}
       <nav className={`p-6 md:p-10 flex justify-between items-center fixed top-0 w-full z-50 transition-all duration-500 ${introDone ? 'opacity-100' : 'opacity-0 translate-y--10'} ${scrolled ? (theme === 'dark' ? 'bg-black/40 backdrop-blur-md' : 'bg-white/60 backdrop-blur-md') : 'bg-transparent'} ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
@@ -362,25 +353,19 @@ const PublicHome: React.FC = () => {
           const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
           setParallax({ x, y });
         }}
-        className={`h-screen px-8 md:px-24 grid-pattern relative overflow-hidden z-10 flex items-center`}
+        className={`h-screen px-8 md:px-24 relative overflow-hidden z-10 flex items-center`}
       >
-        {/* Premium orange layered background for hero with parallax */}
-        <div
-          className="hero-orange-flow parallax-layer parallax-slow"
-          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.4}px` }}
-        ></div>
-        <div
-          className="hero-orange-waves parallax-layer parallax-slow"
-          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.25}px` }}
-        ></div>
-        <div
-          className="hero-orange-bloom parallax-layer parallax-fast"
-          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.2}px` }}
-        ></div>
-        <div
-          className="hero-orange-grain parallax-layer"
-          style={{ ['--parallax-y' as any]: `${scrollParallax.y * -0.1}px` }}
-        ></div>
+        {/* Base black background */}
+        <div className="absolute inset-0 z-0 bg-black" aria-hidden="true"></div>
+        {/* Premium moving aurora overlay */}
+        <PremiumAurora
+          primaryColor="#ff9e73"
+          secondaryColor="#ffd6b3"
+          intensity={0.85}
+          speed={18}
+          angle={-24}
+          mixBlendMode="screen"
+        />
         <div className="w-full flex items-center justify-center">
           {language === 'en' ? (
             <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
@@ -424,23 +409,25 @@ const PublicHome: React.FC = () => {
               </div>
             </Reveal>
           ) : (
-            <div className="text-center max-w-5xl mx-auto">
-              <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6">{`${t.heroH1a} ${t.heroH1b}`}</h1>
-              <div className="mb-10">
-                <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
-              </div>
-              <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12">{t.heroDescExact}</p>
-              <button 
-                onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
-                className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
-                style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
-              >
-                <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
-                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+            <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
+              <div className="text-center max-w-5xl mx-auto">
+                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6">{`${t.heroH1a} ${t.heroH1b}`}</h1>
+                <div className="mb-10">
+                  <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
                 </div>
-                <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
-              </button>
-            </div>
+                <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12">{t.heroDescExact}</p>
+                <button 
+                  onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
+                  className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"
+                  style={{ ['--parallax-y' as any]: `${scrollParallax.y * 0.4}px` }}
+                >
+                  <div className={`w-20 h-20 flex items-center justify-center rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-white text-black shadow-white/5' : 'bg-black text-white shadow-black/5'} group-hover:bg-orange-500 group-hover:text-white group-hover:rotate-12`}>
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
+                  </div>
+                  <span className="text-sm uppercase tracking-[0.5em] font-black group-hover:text-orange-500 transition-colors duration-500">{t.heroCta}</span>
+                </button>
+              </div>
+            </Reveal>
           )}
           {/* Side animation removed to center focus on hero text */}
         </div>
