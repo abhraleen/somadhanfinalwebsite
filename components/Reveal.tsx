@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 type RevealProps = {
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
   className?: string;
   children: React.ReactNode;
   /** Delay in seconds before activating once visible */

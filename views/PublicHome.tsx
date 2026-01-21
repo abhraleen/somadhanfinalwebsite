@@ -295,23 +295,25 @@ const PublicHome: React.FC = () => {
 
   const progressPercentage = (step / 4) * 100;
 
+  // Global keyboard shortcuts: Escape to go back/reset
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (step > 0 && step < 4) {
+          setStep(prev => Math.max(0, prev - 1));
+        } else if (step === 4) {
+          resetFlow();
+        }
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [step]);
+
   return (
     <div className={`min-h-screen transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-black'} ${language === 'bn' ? 'lang-bn' : ''}`}>
       {!introDone && <IntroOverlay onComplete={() => setIntroDone(true)} />}
-      {/* Keyboard shortcuts: Escape to go back / reset */}
-      {useEffect(() => {
-        const onKey = (e: KeyboardEvent) => {
-          if (e.key === 'Escape') {
-            if (step > 0 && step < 4) {
-              setStep(prev => Math.max(0, prev - 1));
-            } else if (step === 4) {
-              resetFlow();
-            }
-          }
-        };
-        window.addEventListener('keydown', onKey);
-        return () => window.removeEventListener('keydown', onKey);
-      }, [step])}
+      {/* Keyboard shortcuts handled via useEffect above */}
 
       {/* Background Cinematic Elements removed per request (orange blur blobs) */}
 
@@ -775,7 +777,7 @@ const PublicHome: React.FC = () => {
       </section>
 
       {/* Authority Section with Reveal and alternating surface for contrast */}
-      <section ref={el => revealRefs.current[0] = el} className={`py-72 px-8 md:px-24 relative overflow-hidden reveal z-30 ${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
+      <section ref={(el) => { revealRefs.current[0] = el; }} className={`py-72 px-8 md:px-24 relative overflow-hidden reveal z-30 ${theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'}`}>
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-orange-500/40 to-transparent"></div>
         <div className="grid lg:grid-cols-2 gap-40 items-center max-w-7xl mx-auto">
           <div>
@@ -806,7 +808,7 @@ const PublicHome: React.FC = () => {
       </section>
 
       {/* Footer with Reveal */}
-      <footer ref={el => revealRefs.current[1] = el} className={`p-16 md:p-40 transition-colors duration-1000 reveal z-40 ${theme === 'dark' ? 'bg-[#050505]' : 'bg-[#fafafa]'} flex flex-col md:flex-row justify-between items-start md:items-end gap-24`}>
+      <footer ref={(el) => { revealRefs.current[1] = el; }} className={`p-16 md:p-40 transition-colors duration-1000 reveal z-40 ${theme === 'dark' ? 'bg-[#050505]' : 'bg-[#fafafa]'} flex flex-col md:flex-row justify-between items-start md:items-end gap-24`}>
         <div className="max-w-2xl">
           <div className="text-6xl font-black tracking-tighter uppercase italic mb-12 transform hover:scale-105 transition-transform duration-700 cursor-default">{t.brand}</div>
           <p className="opacity-20 text-base uppercase tracking-[0.4em] font-bold leading-[2] mb-16 hover-blink-white transition-opacity duration-300">
