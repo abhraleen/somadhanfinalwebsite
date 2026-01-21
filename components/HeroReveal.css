@@ -1,0 +1,61 @@
+/* Cinematic eye-opening reveal overlay for hero */
+.hero-reveal {
+  position: absolute;
+  inset: 0;
+  z-index: 40; /* above hero content */
+  pointer-events: none;
+  background: rgba(8, 8, 9, 0.88);
+  animation: overlayFade 2.2s ease-in-out forwards;
+}
+.hero-reveal__aperture {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 120vmax; height: 120vmax;
+  transform: translate(-50%, -50%) scale(0.22);
+  border-radius: 50%;
+  background:
+    radial-gradient(closest-side,
+      rgba(0,0,0,0) 40%,
+      rgba(8,8,9,0.85) 62%,
+      rgba(8,8,9,0.95) 100%
+    );
+  filter: blur(18px);
+  animation: apertureOpen 2s ease-in-out forwards;
+}
+
+@keyframes apertureOpen {
+  0%   { transform: translate(-50%, -50%) scale(0.22); filter: blur(22px); }
+  55%  { transform: translate(-50%, -50%) scale(1.0);  filter: blur(16px); }
+  100% { transform: translate(-50%, -50%) scale(2.6);  filter: blur(10px); }
+}
+
+@keyframes overlayFade {
+  0%   { opacity: 1; }
+  72%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* Text entrance: calm fade + slight rise */
+.hero-text-enter {
+  opacity: 0;
+  transform: translateY(12px);
+  animation: textFadeUp 2.0s ease-in-out forwards;
+}
+.hero-brand-enter {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: textFadeUp 2.0s ease-in-out forwards;
+  animation-delay: 0.25s;
+}
+@keyframes textFadeUp {
+  0%   { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Mobile: slightly faster, smaller transforms for smoothness */
+@media (max-width: 768px) {
+  .hero-reveal { animation-duration: 1.6s; }
+  .hero-reveal__aperture { animation-duration: 1.5s; filter: blur(14px); }
+  .hero-text-enter { animation-duration: 1.6s; }
+  .hero-brand-enter { animation-duration: 1.6s; animation-delay: 0.2s; }
+}

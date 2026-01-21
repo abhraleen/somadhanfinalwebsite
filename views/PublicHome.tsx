@@ -14,6 +14,7 @@ import ResolutionFlow from '../components/ResolutionFlow';
 // Removed react text animations for a static hero
 import { getSupabaseClient } from '../services/supabase';
 import PremiumAurora from '../components/PremiumAurora';
+import '../components/HeroReveal.css';
 
 const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { language } = useApp();
@@ -95,6 +96,11 @@ const PublicHome: React.FC = () => {
   const [parallax, setParallax] = useState({ x: 0, y: 0 });
   const [scrollParallax, setScrollParallax] = useState({ y: 0, scale: 0 });
   const [scrolled, setScrolled] = useState(false);
+  // Slower landing on initial load (before intro overlay completes)
+  const heroLandingDuration = introDone ? 1.2 : 1.8;
+  const heroWordDuration = introDone ? 1.0 : 1.6;
+  const heroWordDelay = introDone ? 0.10 : 0.18;
+  const subtextDuration = introDone ? 1.0 : 1.4;
   
   const todayISO = () => new Date().toISOString().slice(0, 10);
   const quickDates = () => {
@@ -357,6 +363,10 @@ const PublicHome: React.FC = () => {
         }}
         className={`h-screen px-8 md:px-24 relative overflow-hidden z-10 flex items-center`}
       >
+        {/* Cinematic eye-opening reveal overlay */}
+        <div className="hero-reveal" aria-hidden="true">
+          <div className="hero-reveal__aperture"></div>
+        </div>
         {/* Base black background */}
         <div className="absolute inset-0 z-0 bg-black" aria-hidden="true"></div>
         {/* Premium moving aurora overlay */}
@@ -364,7 +374,7 @@ const PublicHome: React.FC = () => {
           primaryColor="#ff9e73"
           secondaryColor="#ffd6b3"
           intensity={0.85}
-          speed={18}
+          speed={15}
           angle={-24}
           mixBlendMode="screen"
         />
@@ -374,26 +384,26 @@ const PublicHome: React.FC = () => {
               <div className="max-w-5xl mx-auto">
                 <Reveal staggerChildren>
                   <motion.h1
-                    className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6"
-                    initial={{ opacity: 0, y: 12 }}
+                    className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6 hero-text-enter"
+                    initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 120, damping: 24, duration: 0.6 }}
+                    transition={{ type: 'tween', ease: 'easeOut', duration: heroLandingDuration }}
                   >
                     <WritingText
                       key={`hero-writing-${language}-${introDone ? 'intro' : 'pre'}`}
                       text={`${t.heroH1a} ${t.heroH1b}`}
                       spacing={8}
-                      transition={{ type: 'spring', bounce: 0, duration: 0.8, delay: 0.12 }}
+                      transition={{ type: 'tween', ease: 'easeOut', duration: heroWordDuration, delay: heroWordDelay }}
                     />
                   </motion.h1>
                   <div className="mb-10">
-                    <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
+                    <span className="text-4xl md:text-5xl font-black text-orange-500 hero-brand-enter">{t.heroBrand}</span>
                   </div>
                   <motion.p
                     className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12"
-                    initial={{ opacity: 0, y: 8 }}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ type: 'spring', stiffness: 140, damping: 22, duration: 0.6, delay: 0.08 }}
+                    transition={{ type: 'tween', ease: 'easeOut', duration: subtextDuration, delay: 0.08 }}
                   >
                     {t.heroDescExact}
                   </motion.p>
@@ -413,11 +423,25 @@ const PublicHome: React.FC = () => {
           ) : (
             <Reveal className={`transition-all duration-500 ${introDone ? 'opacity-100 scale-100' : 'opacity-0 scale-105 blur-sm'} text-center`}>
               <div className="text-center max-w-5xl mx-auto">
-                <h1 className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6">{`${t.heroH1a} ${t.heroH1b}`}</h1>
+                <motion.h1
+                  className="text-5xl md:text-7xl lg:text-8xl font-black leading-[1.05] mb-6 hero-text-enter"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'tween', ease: 'easeOut', duration: heroLandingDuration }}
+                >
+                  {`${t.heroH1a} ${t.heroH1b}`}
+                </motion.h1>
                 <div className="mb-10">
-                  <span className="text-4xl md:text-5xl font-black text-orange-500">{t.heroBrand}</span>
+                  <span className="text-4xl md:text-5xl font-black text-orange-500 hero-brand-enter">{t.heroBrand}</span>
                 </div>
-                <p className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12">{t.heroDescExact}</p>
+                <motion.p
+                  className="max-w-2xl mx-auto text-lg md:text-xl opacity-70 leading-relaxed mb-12"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ type: 'tween', ease: 'easeOut', duration: subtextDuration, delay: 0.06 }}
+                >
+                  {t.heroDescExact}
+                </motion.p>
                 <button 
                   onClick={() => flowRef.current?.scrollIntoView({ behavior: 'smooth' })}
                   className="group inline-flex items-center gap-6 btn-magnetic btn-premium parallax-layer mx-auto"

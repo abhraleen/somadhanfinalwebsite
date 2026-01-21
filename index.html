@@ -208,13 +208,60 @@
         transform: scale(0.95);
       }
 
-      /* Premium button */
+      /* Premium button: glassy, warm, dynamic */
       .btn-premium {
+        position: relative;
         box-shadow: var(--shadow-soft);
+        overflow: hidden;
+        border-radius: 14px;
+        isolation: isolate;
+      }
+      .btn-premium::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        pointer-events: none;
+        background:
+          radial-gradient(120% 80% at 40% 40%, rgba(255,122,24,0.10) 0%, rgba(255,122,24,0.00) 60%),
+          linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%),
+          linear-gradient(120deg, rgba(255,122,24,0.08) 0%, rgba(255,255,255,0.04) 50%, rgba(255,122,24,0.08) 100%);
+        background-size: 200% 200%, 100% 100%, 220% 220%;
+        background-position: 0% 50%, 50% 50%, 50% 50%;
+        mix-blend-mode: normal;
+        opacity: 0.9;
+        will-change: background-position, opacity;
+        animation: ctaFlow 32s ease-in-out infinite;
+      }
+      .btn-premium::after {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: 16px;
+        pointer-events: none;
+        background: linear-gradient(90deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.00) 45%, rgba(255,255,255,0.06) 100%);
+        background-size: 180% 100%;
+        opacity: 0.08;
+        will-change: background-position;
+        animation: ctaSheen 28s ease-in-out infinite;
       }
       .btn-premium:hover {
         box-shadow: var(--shadow-glow);
         transform: translateY(-2px);
+      }
+      @keyframes ctaFlow {
+        0% { background-position: 0% 50%, 50% 50%, 50% 50%; }
+        50% { background-position: 100% 50%, 50% 50%, 52% 48%; }
+        100% { background-position: 0% 50%, 50% 50%, 50% 50%; }
+      }
+      @keyframes ctaSheen {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+      @media (max-width: 768px) {
+        .btn-premium::before,
+        .btn-premium::after { animation: none; }
       }
       /* Hero background: subtle animated gradient + bloom */
       @keyframes gradientShift {

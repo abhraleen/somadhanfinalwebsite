@@ -12,10 +12,10 @@ export interface PremiumAuroraProps {
 }
 
 const PremiumAurora: React.FC<PremiumAuroraProps> = ({
-  primaryColor = '#e28a65',
-  secondaryColor = '#ffb58f',
+  primaryColor = '#d4d1d1',
+  secondaryColor = '#d44912',
   intensity = 0.4,
-  speed = 28,
+  speed = 10,
   angle = -24,
   mixBlendMode = 'screen',
   className = '',
