@@ -103,18 +103,14 @@ export const useEnquiries = () => {
     const updated = enquiries.map(e => e.id === id ? { ...e, status } : e);
     setEnquiries(updated);
     localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(updated));
-    if (supabase) {
-      supabase.from('enquiries').update({ status }).eq('id', id);
-    }
+    // Server-side status updates are handled in AdminDashboard via authenticated client.
   };
 
   const deleteEnquiry = (id: string) => {
     const updated = enquiries.filter(e => e.id !== id);
     setEnquiries(updated);
     localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(updated));
-    if (supabase) {
-      supabase.from('enquiries').delete().eq('id', id);
-    }
+    // Server-side deletes are handled in AdminDashboard via authenticated client.
   };
 
   return { enquiries, saveEnquiry, updateEnquiryStatus, deleteEnquiry };
