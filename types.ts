@@ -39,6 +39,6 @@ export interface Enquiry {
 
 export interface ServiceDefinition {
   type: ServiceType;
-  options: ('Repair' | 'New' | 'Buy' | 'Sell')[];
+  options: ('Repair' | 'New' | 'Buy' | 'Sell' | 'General')[];
   requiresLandLogic?: boolean;
 }

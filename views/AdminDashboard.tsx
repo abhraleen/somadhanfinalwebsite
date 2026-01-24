@@ -67,6 +67,39 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
     return () => cancelAnimationFrame(id);
   }, []);
 
+  // Realtime updates for enquiries (insert/update/delete)
+  useEffect(() => {
+    if (!supabase) return;
+    const channel = supabase
+      .channel('enquiries_realtime')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'enquiries' },
+        () => {
+          fetchEnquiries();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'enquiries' },
+        () => {
+          fetchEnquiries();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: 'DELETE', schema: 'public', table: 'enquiries' },
+        () => {
+          fetchEnquiries();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [supabase]);
+
   return (
     <div className={`min-h-screen flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
       {/* Dynamic Sidebar (hidden on mobile) */}

@@ -213,7 +213,7 @@ const PublicHome: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
-      await saveEnquiry({
+      const { synced } = await saveEnquiry({
         service: selectedService.type,
         category: (selectedOption || 'General') as any,
         landCondition: landCondition || undefined,
@@ -226,7 +226,12 @@ const PublicHome: React.FC = () => {
       });
 
       setStep(4);
-      pushToast(t.linkedEngaged, 'success');
+      if (synced) {
+        pushToast(t.linkedEngaged, 'success');
+      } else {
+        pushToast('Submit failed. Please try again.', 'error');
+        return;
+      }
       const svc = t.services[selectedService.type as keyof typeof t.services];
       const cats = t.categories[(selectedOption || 'General') as keyof typeof t.categories];
       const land = landCondition ? t.categories[landCondition as keyof typeof t.categories] : '';

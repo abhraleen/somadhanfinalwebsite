@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { Enquiry, EnquiryStatus } from '../types';
 import { ENQUIRIES_STORAGE_KEY } from '../constants';
 import { getSupabaseClient } from '../services/supabase';
+import { useToast } from './useToast';
 
 export const useEnquiries = () => {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const supabase = getSupabaseClient();
+  const { pushToast } = useToast();
 
   useEffect(() => {
     // Load from Supabase if configured; otherwise fallback to localStorage
@@ -43,18 +45,13 @@ export const useEnquiries = () => {
     load();
   }, []);
 
-  const saveEnquiry = async (enquiry: Omit<Enquiry, 'id' | 'createdAt' | 'status'>) => {
+  const saveEnquiry = async (
+    enquiry: Omit<Enquiry, 'id' | 'createdAt' | 'status'>
+  ): Promise<{ entry: Enquiry | null; synced: boolean }> => {
     const createLocal = () => {
-      const newEnquiry: Enquiry = {
-        ...enquiry,
-        id: Math.random().toString(36).substr(2, 9),
-        createdAt: new Date().toISOString(),
-        status: EnquiryStatus.NEW,
-      };
-      const updated = [newEnquiry, ...enquiries];
-      setEnquiries(updated);
-      localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(updated));
-      return newEnquiry;
+      console.error('[Enquiries] Supabase unavailable or insert failed; not saving locally.');
+      pushToast('Submit failed. Please try again.', 'error');
+      return { entry: null, synced: false };
     };
 
     if (!supabase) return createLocal();
@@ -76,7 +73,10 @@ export const useEnquiries = () => {
       .select('*')
       .single();
 
-    if (error || !data) return createLocal();
+    if (error || !data) {
+      console.error('[Enquiries] Supabase insert error:', error);
+      return createLocal();
+    }
     const newEnquiry: Enquiry = {
       id: data.id,
       service: data.service,
@@ -93,7 +93,8 @@ export const useEnquiries = () => {
     };
     const updated = [newEnquiry, ...enquiries];
     setEnquiries(updated);
-    return newEnquiry;
+    pushToast('Request received. Admin notified.', 'success');
+    return { entry: newEnquiry, synced: true };
   };
 
   const updateEnquiryStatus = (id: string, status: EnquiryStatus) => {
