@@ -225,8 +225,8 @@ const PublicHome: React.FC = () => {
         notes: notes || undefined,
       });
 
-      setStep(4);
       if (synced) {
+        setStep(4);
         pushToast(t.linkedEngaged, 'success');
       } else {
         pushToast('Submit failed. Please try again.', 'error');

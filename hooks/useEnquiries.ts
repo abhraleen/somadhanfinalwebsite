@@ -75,6 +75,7 @@ export const useEnquiries = () => {
 
     if (error || !data) {
       console.error('[Enquiries] Supabase insert error:', error);
+      pushToast(`Insert failed: ${error?.message || 'Unknown error'}`, 'error');
       return createLocal();
     }
     const newEnquiry: Enquiry = {
