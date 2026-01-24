@@ -3,6 +3,13 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
 let client: SupabaseClient | null = null;
 let anonClient: SupabaseClient | null = null;
 
+// No-op storage to ensure anon client cannot read any persisted session
+const NoopStorage = {
+  getItem: (_key: string) => null,
+  setItem: (_key: string, _value: string) => {},
+  removeItem: (_key: string) => {},
+} as Storage;
+
 export function getSupabaseClient(): SupabaseClient | null {
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -22,6 +29,7 @@ export function getSupabaseAnonClient(): SupabaseClient | null {
         persistSession: false,
         autoRefreshToken: false,
         detectSessionInUrl: false,
+        storage: NoopStorage,
       },
     });
   }

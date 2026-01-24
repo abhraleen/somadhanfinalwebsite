@@ -55,12 +55,13 @@ export const useEnquiries = () => {
     };
 
     if (!supabaseAnon) return createLocal();
-    console.log('[Enquiries] Insert context: using anon client (persistSession=false, autoRefresh=false)');
+    console.log('[Enquiries] Insert context: using anon client (persistSession=false, autoRefresh=false, storage=Noop)');
     try {
       const { data: sess } = await supabaseAnon.auth.getSession();
       const { data: usr } = await supabaseAnon.auth.getUser();
       console.log('[Enquiries] anon session:', sess?.session ? 'present' : 'none');
       console.log('[Enquiries] anon user:', usr?.user ? 'present' : 'none');
+      pushToast(`Insert context: anon session=${sess?.session ? 'present' : 'none'} user=${usr?.user ? 'present' : 'none'}`, 'info');
     } catch (e) {
       console.warn('[Enquiries] session/user check failed on anon client:', e);
     }
@@ -111,14 +112,14 @@ export const useEnquiries = () => {
     const updated = enquiries.map(e => e.id === id ? { ...e, status } : e);
     setEnquiries(updated);
     localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(updated));
-    // Server-side status updates are handled in AdminDashboard via authenticated client.
+    // Server-side status updates handled in AdminDashboard via authenticated client
   };
 
   const deleteEnquiry = (id: string) => {
     const updated = enquiries.filter(e => e.id !== id);
     setEnquiries(updated);
     localStorage.setItem(ENQUIRIES_STORAGE_KEY, JSON.stringify(updated));
-    // Server-side deletes are handled in AdminDashboard via authenticated client.
+    // Server-side deletes handled in AdminDashboard via authenticated client
   };
 
   return { enquiries, saveEnquiry, updateEnquiryStatus, deleteEnquiry };
