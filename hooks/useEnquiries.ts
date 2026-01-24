@@ -56,6 +56,14 @@ export const useEnquiries = () => {
 
     if (!supabaseAnon) return createLocal();
     console.log('[Enquiries] Insert context: using anon client (persistSession=false, autoRefresh=false)');
+    try {
+      const { data: sess } = await supabaseAnon.auth.getSession();
+      const { data: usr } = await supabaseAnon.auth.getUser();
+      console.log('[Enquiries] anon session:', sess?.session ? 'present' : 'none');
+      console.log('[Enquiries] anon user:', usr?.user ? 'present' : 'none');
+    } catch (e) {
+      console.warn('[Enquiries] session/user check failed on anon client:', e);
+    }
 
     const { data, error } = await supabaseAnon
       .from('enquiries')
