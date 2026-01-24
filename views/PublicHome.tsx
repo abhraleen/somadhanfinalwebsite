@@ -12,7 +12,6 @@ import { useApp } from '../App';
 import Reveal from '../components/Reveal';
 import ResolutionFlow from '../components/ResolutionFlow';
 // Removed react text animations for a static hero
-import { getSupabaseClient } from '../services/supabase';
 import PremiumAurora from '../components/PremiumAurora';
 import '../components/HeroReveal.css';
 
@@ -213,9 +212,11 @@ const PublicHome: React.FC = () => {
     }
     setIsSubmitting(true);
     try {
+      const allowedCats = ['Repair', 'New', 'Buy', 'Sell'];
+      const normalizedCategory = allowedCats.includes(selectedOption) ? selectedOption : 'New';
       const { synced } = await saveEnquiry({
         service: selectedService.type,
-        category: (selectedOption || 'General') as any,
+        category: normalizedCategory as any,
         landCondition: landCondition || undefined,
         phone,
         name,
@@ -233,7 +234,7 @@ const PublicHome: React.FC = () => {
         return;
       }
       const svc = t.services[selectedService.type as keyof typeof t.services];
-      const cats = t.categories[(selectedOption || 'General') as keyof typeof t.categories];
+      const cats = t.categories[(normalizedCategory || 'New') as keyof typeof t.categories];
       const land = landCondition ? t.categories[landCondition as keyof typeof t.categories] : '';
       const lines = [
         `${t.brand} • New Service Request`,

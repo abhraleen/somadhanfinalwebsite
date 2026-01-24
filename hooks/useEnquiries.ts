@@ -48,59 +48,52 @@ export const useEnquiries = () => {
   const saveEnquiry = async (
     enquiry: Omit<Enquiry, 'id' | 'createdAt' | 'status'>
   ): Promise<{ entry: Enquiry | null; synced: boolean }> => {
-    const createLocal = () => {
-      console.error('[Enquiries] Supabase unavailable or insert failed; not saving locally.');
+    if (!supabaseAnon) {
+      console.error('[Enquiries] Supabase client unavailable; cannot insert.');
       pushToast('Submit failed. Please try again.', 'error');
       return { entry: null, synced: false };
-    };
-
-    if (!supabaseAnon) return createLocal();
-    console.log('[Enquiries] Insert context: using anon client (persistSession=false, autoRefresh=false, storage=Noop)');
-    try {
-      const { data: sess } = await supabaseAnon.auth.getSession();
-      const { data: usr } = await supabaseAnon.auth.getUser();
-      console.log('[Enquiries] anon session:', sess?.session ? 'present' : 'none');
-      console.log('[Enquiries] anon user:', usr?.user ? 'present' : 'none');
-      pushToast(`Insert context: anon session=${sess?.session ? 'present' : 'none'} user=${usr?.user ? 'present' : 'none'}`, 'info');
-    } catch (e) {
-      console.warn('[Enquiries] session/user check failed on anon client:', e);
     }
+    console.log('[Enquiries] Using dedicated public Supabase client for insert.');
+    const phoneDigits = (enquiry.phone || '').replace(/\D+/g, '');
+    const payload = {
+      service: (enquiry.service || '').trim(),
+      category: (enquiry.category || '').toString().trim(),
+      land_condition: enquiry.landCondition ? enquiry.landCondition.trim() : null,
+      phone: phoneDigits,
+      name: enquiry.name ? enquiry.name.trim() : null,
+      address: enquiry.address ? enquiry.address.trim() : null,
+      preferred_date: enquiry.preferredDate ? enquiry.preferredDate.trim() : null,
+      preferred_time: enquiry.preferredTime ? enquiry.preferredTime.trim() : null,
+      notes: enquiry.notes ? enquiry.notes.trim() : null,
+      status: EnquiryStatus.NEW,
+    };
 
     const { data, error } = await supabaseAnon
       .from('enquiries')
-      .insert({
-        service: enquiry.service,
-        category: enquiry.category,
-        land_condition: enquiry.landCondition ?? null,
-        phone: enquiry.phone,
-        name: enquiry.name ?? null,
-        address: enquiry.address ?? null,
-        preferred_date: enquiry.preferredDate ?? null,
-        preferred_time: enquiry.preferredTime ?? null,
-        notes: enquiry.notes ?? null,
-        status: EnquiryStatus.NEW,
-      })
-      .select('*')
-      .single();
+      .insert(payload);
 
-    if (error || !data) {
+    console.log('[Enquiries] Supabase insert response:', { data, error });
+
+    if (error) {
       console.error('[Enquiries] Supabase insert error:', error);
       pushToast(`Insert failed: ${error?.message || 'Unknown error'}`, 'error');
-      return createLocal();
+      return { entry: null, synced: false };
     }
+    // Insert succeeded; we may not have row data due to select RLS. Optimistically prepend minimal entry.
+    const nowIso = new Date().toISOString();
     const newEnquiry: Enquiry = {
-      id: data.id,
-      service: data.service,
-      category: data.category,
-      landCondition: data.land_condition ?? undefined,
-      phone: data.phone,
-      name: data.name ?? undefined,
-      address: data.address ?? undefined,
-      preferredDate: data.preferred_date ?? undefined,
-      preferredTime: data.preferred_time ?? undefined,
-      notes: data.notes ?? undefined,
-      createdAt: data.created_at,
-      status: data.status as EnquiryStatus,
+      id: Math.random().toString(36).slice(2),
+      service: enquiry.service,
+      category: enquiry.category,
+      landCondition: enquiry.landCondition ?? undefined,
+      phone: phoneDigits,
+      name: enquiry.name ?? undefined,
+      address: enquiry.address ?? undefined,
+      preferredDate: enquiry.preferredDate ?? undefined,
+      preferredTime: enquiry.preferredTime ?? undefined,
+      notes: enquiry.notes ?? undefined,
+      createdAt: nowIso,
+      status: EnquiryStatus.NEW,
     };
     const updated = [newEnquiry, ...enquiries];
     setEnquiries(updated);
