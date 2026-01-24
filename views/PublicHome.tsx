@@ -53,7 +53,7 @@ const PublicHome: React.FC = () => {
   const [step, setStep] = useState<number>(0);
   const [selectedService, setSelectedService] = useState<ServiceDefinition | null>(null);
   const [selectedOption, setSelectedOption] = useState<string>('');
-  const [landCondition, setLandCondition] = useState<string>('');
+  const [landCondition, setLandCondition] = useState<'Old' | 'New' | ''>('');
   const [phone, setPhone] = useState<string>('');
   const [name, setName] = useState<string>('');
   const [address, setAddress] = useState<string>('');
@@ -531,7 +531,7 @@ const PublicHome: React.FC = () => {
                   {t.propertyState}:
                 </p>
                 <div className="grid grid-cols-2 gap-6">
-                  {['Old', 'New'].map((cond, idx) => (
+                  {(['Old', 'New'] as const).map((cond, idx) => (
                     <button
                       key={cond}
                       style={{ ['--stagger-index' as any]: idx }}
