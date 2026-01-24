@@ -2,19 +2,19 @@
 import { useState, useEffect } from 'react';
 import { Enquiry, EnquiryStatus } from '../types';
 import { ENQUIRIES_STORAGE_KEY } from '../constants';
-import { getSupabaseClient } from '../services/supabase';
+import { getSupabaseAnonClient } from '../services/supabase';
 import { useToast } from './useToast';
 
 export const useEnquiries = () => {
   const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
-  const supabase = getSupabaseClient();
+  const supabaseAnon = getSupabaseAnonClient();
   const { pushToast } = useToast();
 
   useEffect(() => {
     // Load from Supabase if configured; otherwise fallback to localStorage
     const load = async () => {
-      if (supabase) {
-        const { data, error } = await supabase
+      if (supabaseAnon) {
+        const { data, error } = await supabaseAnon
           .from('enquiries')
           .select('*')
           .order('created_at', { ascending: false });
@@ -54,9 +54,10 @@ export const useEnquiries = () => {
       return { entry: null, synced: false };
     };
 
-    if (!supabase) return createLocal();
+    if (!supabaseAnon) return createLocal();
+    console.log('[Enquiries] Insert context: using anon client (persistSession=false, autoRefresh=false)');
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAnon
       .from('enquiries')
       .insert({
         service: enquiry.service,
