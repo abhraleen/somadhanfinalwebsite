@@ -4,12 +4,15 @@
   pointer-events: none;
   opacity: var(--aurora-intensity, 0.6);
   contain: strict;
+  isolation: isolate; /* avoid blend glitches on mobile */
 }
 
 .aurora-layer {
   position: absolute;
   inset: -8%;
   will-change: transform, opacity, background-position;
+  backface-visibility: hidden;
+  transform: translateZ(0); /* promote to its own layer */
 }
 
 /* Bands */
@@ -105,4 +108,26 @@
 
 @media (prefers-reduced-motion: reduce) {
   .band, .glow, .grain { animation: none; }
+}
+
+/* Mobile performance safeguards */
+@media (max-width: 768px) {
+  .aurora-container { opacity: calc(var(--aurora-intensity, 0.6) * 0.7); }
+  .band { filter: blur(24px) saturate(110%); animation-duration: calc(var(--aurora-speed, 28s) * 1.4); }
+  .band-two { opacity: 0.5; }
+  .glow { filter: blur(40px); opacity: 0.25; animation-duration: calc(var(--aurora-speed, 28s) * 2.8); }
+  .grain { opacity: 0.08; animation: none; }
+}
+
+@media (max-width: 480px) {
+  /* On very small screens, simplify further to avoid GPU overdraw/flicker */
+  .band { filter: blur(18px); }
+  .band-two { display: none; }
+  .glow { filter: blur(28px); opacity: 0.2; }
+  .grain { display: none; }
+}
+
+@media (pointer: coarse) {
+  /* Coarse pointer typically indicates touch devices */
+  .grain { animation: none; }
 }

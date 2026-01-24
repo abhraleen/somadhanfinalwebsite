@@ -19,51 +19,28 @@ import '../components/HeroReveal.css';
 const IntroOverlay: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const { language } = useApp();
   const t = translations[language];
-  const [displayText, setDisplayText] = useState('');
   const [phase, setPhase] = useState(1);
-  const fullText = t.brand.toUpperCase();
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*';
+  const brand = t.brand.toUpperCase();
 
   useEffect(() => {
-    let iteration = 0;
-    const interval = setInterval(() => {
-      setDisplayText(prev => 
-        fullText.split('').map((char, index) => {
-          if (index < iteration) return char;
-          return chars[Math.floor(Math.random() * chars.length)];
-        }).join('')
-      );
-      
-      iteration += 1/3;
-      if (iteration >= fullText.length + 1) {
-        clearInterval(interval);
-        setTimeout(() => setPhase(2), 500);
-        setTimeout(onComplete, 500);
-      }
-    }, 40);
-    return () => clearInterval(interval);
-  }, [fullText]);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const isSmall = window.innerWidth < 768;
+    const fadeIn = reduceMotion ? 600 : (isSmall ? 900 : 1400);
+    const hold = reduceMotion ? 200 : (isSmall ? 300 : 400);
+    const fadeOut = reduceMotion ? 600 : (isSmall ? 800 : 900);
+    const total = fadeIn + hold + fadeOut;
+    const id = window.setTimeout(() => {
+      setPhase(2);
+      onComplete();
+    }, total);
+    return () => window.clearTimeout(id);
+  }, [onComplete, t.brand]);
 
   return (
-    <div className={`fixed inset-0 z-[100] bg-[#0A0A0A] flex flex-col items-center justify-center transition-opacity duration-500 ${phase === 2 ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-      <div className="water-bg"></div>
-      <div className="relative flex flex-col items-center">
-        <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden water-text">
-          {displayText}
-        </h1>
-        {/* Reflection */}
-        <h1 className="text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text overflow-hidden opacity-10 transform scale-y-[-1] mt-2 reflection-mask">
-          {displayText}
-        </h1>
-        <div className="scan-line"></div>
-        <div className="horizon-line mt-8"></div>
-      </div>
-      <div className="mt-8 flex flex-col items-center gap-2">
-        <p className="mono text-[10px] text-orange-500 uppercase tracking-[0.5em] animate-pulse">{t.initializing}</p>
-        <div className="w-48 h-[1px] bg-white/10 relative overflow-hidden">
-          <div className="absolute inset-0 bg-orange-500 w-1/3 animate-[loading_2s_infinite]"></div>
-        </div>
-      </div>
+    <div className={`intro-overlay fixed inset-0 z-[100] bg-[#0A0A0A] flex flex-col items-center justify-center ${phase === 2 ? 'opacity-0 pointer-events-none' : 'opacity-0'}`}>
+      <h1 className="intro-brand text-5xl md:text-9xl font-black italic tracking-tighter text-white cinematic-text">
+        {brand}
+      </h1>
     </div>
   );
 };
@@ -235,32 +212,19 @@ const PublicHome: React.FC = () => {
       return;
     }
     setIsSubmitting(true);
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      console.error('Supabase client is not configured. Aborting submit.');
-      alert('Submission failed: service is currently offline. Please try again later.');
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Minimal payload per requirement
-    const payload = {
-      service: selectedService.type,
-      category: (selectedOption || 'General') as any,
-      phone,
-      name,
-      address,
-      notes: notes || null,
-    };
     try {
-      const { error } = await supabase.from('enquiries').insert(payload);
-      if (error) {
-        console.error('Insert failed:', error);
-        alert('Could not save your request. Please try again.');
-        return; // DO NOT open WhatsApp on failure
-      }
+      await saveEnquiry({
+        service: selectedService.type,
+        category: (selectedOption || 'General') as any,
+        landCondition: landCondition || undefined,
+        phone,
+        name,
+        address,
+        preferredDate: preferredDate || undefined,
+        preferredTime: preferredTime || undefined,
+        notes: notes || undefined,
+      });
 
-      // Insert succeeded: proceed to WhatsApp
       setStep(4);
       pushToast(t.linkedEngaged, 'success');
       const svc = t.services[selectedService.type as keyof typeof t.services];
@@ -317,7 +281,7 @@ const PublicHome: React.FC = () => {
   }, [step]);
 
   return (
-    <div className={`min-h-screen transition-colors duration-700 page-enter ${entered ? 'active' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-black'} ${language === 'bn' ? 'lang-bn' : ''}`}>
+    <div className={`min-h-screen transition-colors duration-700 page-fade-in ${entered ? 'ready' : ''} ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-[#FAFAFA] text-black'} ${language === 'bn' ? 'lang-bn' : ''}`}>
       {!introDone && <IntroOverlay onComplete={() => setIntroDone(true)} />}
       {/* Keyboard shortcuts handled via useEffect above */}
 
@@ -519,11 +483,15 @@ const PublicHome: React.FC = () => {
                     <div className="absolute top-10 right-10 opacity-5 group-hover:opacity-20 transition-all duration-700 transform group-hover:scale-125 group-hover:-rotate-12">
                       <span className="text-7xl font-black italic">{idx + 1}</span>
                     </div>
-                    <div className={`w-14 h-1.5 mb-8 transition-all duration-700 group-hover:w-full ${theme === 'dark' ? 'bg-black/10' : 'bg-white/10'} group-hover:bg-orange-500`}></div>
-                    <span className="text-[10px] uppercase font-black tracking-[0.4em] opacity-30 group-hover:opacity-100 transition-all duration-700 mb-3">Protocol: Local</span>
-                    <span className="text-2xl md:text-3xl font-black leading-tight uppercase italic">{t.services[s.type as keyof typeof t.services]}</span>
-                    
-                      <div className={`absolute bottom-0 left-0 w-full h-0 transition-all duration-700 -z-10 ${theme === 'dark' ? 'bg-black/5' : 'bg-white/5' } group-hover:h-full`}></div>
+                    <div className="w-full svc-card-text flex flex-col items-start">
+                      <div className={`svc-divider transition-all duration-700 group-hover:w-full ${theme === 'dark' ? 'bg-black/10' : 'bg-white/10'} group-hover:bg-orange-500`}></div>
+                      <div className="svc-labels flex flex-col gap-1 mb-6">
+                        <span className="svc-label service-card-meta text-[10px] uppercase font-black opacity-50">Protocol</span>
+                        <span className="svc-label service-card-meta text-[10px] uppercase font-black opacity-40">Local</span>
+                      </div>
+                      <span className="svc-title service-card-title text-2xl md:text-3xl font-black uppercase italic">{t.services[s.type as keyof typeof t.services]}</span>
+                    </div>
+                    <div className={`absolute bottom-0 left-0 w-full h-0 transition-all duration-700 -z-10 ${theme === 'dark' ? 'bg-black/5' : 'bg-white/5' } group-hover:h-full`}></div>
                   </button>
                 ))}
               </Reveal>
@@ -728,7 +696,7 @@ const PublicHome: React.FC = () => {
 
                 {/* Phone Field */}
                 <div className="relative group overflow-hidden">
-                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-5xl md:text-8xl font-black opacity-10 group-focus-within:text-orange-500 group-focus-within:opacity-100 transition-all duration-700 uppercase">+91</span>
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 text-xl md:text-3xl font-black opacity-20 group-focus-within:text-orange-500 group-focus-within:opacity-100 transition-all duration-700 uppercase">+91</span>
                   <input
                     required
                     autoFocus
@@ -737,7 +705,7 @@ const PublicHome: React.FC = () => {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
                     inputMode="numeric"
-                    className={`w-full bg-transparent border-b-[12px] text-5xl md:text-[10rem] font-black py-14 pl-32 md:pl-64 focus:outline-none focus:border-orange-500 transition-all duration-1000 placeholder:opacity-5 ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
+                    className={`w-full bg-transparent border-b-[6px] text-3xl md:text-5xl font-black py-8 pl-20 md:pl-32 focus:outline-none focus:border-orange-500 transition-all duration-700 placeholder:opacity-30 ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                   />
                   <div className="absolute bottom-0 left-0 h-4 bg-orange-500 transition-all duration-1000 w-0 group-focus-within:w-full"></div>
                 </div>

@@ -17,8 +17,8 @@ const ResolutionFlow: React.FC<ResolutionFlowProps> = ({ className = '', width =
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const canvas = canvasRef.current;
     if (!canvas) return;
-
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    const isSmall = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio || 1, isSmall ? 1 : 1.5);
     canvas.width = Math.floor(width * dpr);
     canvas.height = Math.floor(height * dpr);
     canvas.style.width = `${width}px`;
@@ -30,7 +30,9 @@ const ResolutionFlow: React.FC<ResolutionFlowProps> = ({ className = '', width =
     type Node = { x: number; y: number; r: number; vx: number; vy: number };
     const center = { x: width * 0.6, y: height * 0.5 };
     const makeNodes = (): Node[] => {
-      const count = Math.floor(10 + Math.random() * 5); // 10–14
+      const base = isSmall ? 8 : 10;
+      const jitter = isSmall ? 3 : 5;
+      const count = Math.floor(base + Math.random() * jitter); // 8–11 on mobile, 10–14 desktop
       const xs: Node[] = [];
       for (let i = 0; i < count; i++) {
         xs.push({
@@ -45,7 +47,7 @@ const ResolutionFlow: React.FC<ResolutionFlowProps> = ({ className = '', width =
     };
 
     let nodes = makeNodes();
-    const lineDist = 140; // px
+    const lineDist = isSmall ? 110 : 140; // px
     const lineDist2 = lineDist * lineDist;
 
     const convergeDuration = 2000; // 2s
@@ -88,6 +90,7 @@ const ResolutionFlow: React.FC<ResolutionFlowProps> = ({ className = '', width =
     }
 
     const step = (ts: number) => {
+      if (!isActive) { rafRef.current = null; return; }
       const dt = ts - lastTs;
       lastTs = ts;
       const elapsed = ts - cycleStart;
@@ -185,9 +188,21 @@ const ResolutionFlow: React.FC<ResolutionFlowProps> = ({ className = '', width =
       rafRef.current = requestAnimationFrame(step);
     };
 
+    let isActive = true;
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        isActive = entry.isIntersecting;
+        if (isActive && !rafRef.current) {
+          rafRef.current = requestAnimationFrame(step);
+        }
+      }
+    }, { threshold: 0.1 });
+    observer.observe(canvas);
+
     rafRef.current = requestAnimationFrame(step);
     return () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      observer.disconnect();
     };
   }, [width, height]);
 
