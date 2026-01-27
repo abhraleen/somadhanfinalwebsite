@@ -103,7 +103,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
   return (
     <div className={`min-h-screen flex overflow-hidden transition-colors duration-700 ${theme === 'dark' ? 'bg-[#0A0A0A] text-white' : 'bg-white text-black'}`}>
       {/* Dynamic Sidebar (hidden on mobile) */}
-      <aside className={`hidden md:flex md:w-80 border-r flex-col p-6 md:p-10 fixed md:static md:h-auto h-full z-50 ${theme === 'dark' ? 'bg-black/80 border-white/5 backdrop-blur-md' : 'bg-gray-50 border-black/5'}`}>
+      <aside className={`hidden md:flex md:fixed md:w-80 border-r flex-col p-6 md:p-10 md:h-screen z-50 ${theme === 'dark' ? 'bg-black/80 border-white/5 backdrop-blur-md' : 'bg-gray-50 border-black/5'}`}>
         <div className="flex items-center gap-4 mb-20">
           <Link to="/" className="text-2xl font-black uppercase italic tracking-tighter">{t.brand}</Link>
           <div className="px-2 py-0.5 bg-orange-500 text-[8px] font-black rounded uppercase text-white">Admin</div>
@@ -210,52 +210,52 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
           ) : (
             <div className={`border rounded-3xl overflow-hidden backdrop-blur-xl ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-black/5 border-black/10'}`}>
               <div className="overflow-x-auto">
-              <table className="min-w-[1000px] w-full text-left">
+              <table className="min-w-full w-full table-fixed text-left">
                 <thead className={`${theme === 'dark' ? 'bg-white/80 text-black backdrop-blur-sm' : 'bg-black/80 text-white backdrop-blur-sm'}`}>
                   <tr>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Client</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Target Service</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Protocol Type</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Location</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Preferred</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Contact</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Timestamp</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Status</th>
-                    <th className="px-10 py-8 text-[10px] uppercase tracking-[0.4em] font-black">Operation</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-48">Client</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40">Target Service</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40">Protocol Type</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-48">Location</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40">Preferred</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40">Contact</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-48">Timestamp</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40 text-center">Status</th>
+                    <th className="px-6 py-6 text-[10px] uppercase tracking-[0.4em] font-black w-40 text-center">Operation</th>
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${theme === 'dark' ? 'divide-white/10' : 'divide-black/10'}`}>
                   {filteredEnquiries.map((e) => (
                     <tr key={e.id} className="hover:bg-orange-500/5 transition-colors group">
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 break-words">
                         <div className="flex flex-col">
                           <span className="text-sm font-black tracking-widest">{e.name || '—'}</span>
                           <span className="text-[10px] opacity-40 font-black">{e.phone}</span>
                         </div>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 truncate">
                         <span className="text-xl font-black uppercase italic tracking-tighter group-hover:text-orange-500 transition-colors">{t.services[e.service as keyof typeof t.services]}</span>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 break-words">
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">
                           {t.categories[e.category as keyof typeof t.categories]} {e.landCondition ? `• ${t.categories[e.landCondition as keyof typeof t.categories]}` : ''}
                         </span>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 break-words">
                         <span className="text-sm font-black tracking-widest">{e.address || '—'}</span>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6">
                         <span className="text-[10px] opacity-40 font-black tracking-widest">{(e.preferredDate || 'N/A')}{e.preferredTime ? ` • ${e.preferredTime}` : ''}</span>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6">
                         <a href={`tel:${e.phone}`} className="text-sm font-black tracking-widest hover:text-orange-500 transition-colors">{e.phone}</a>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 whitespace-nowrap">
                         <span className="text-[10px] opacity-20 font-bold tracking-widest">
                           {new Date(e.createdAt).toLocaleDateString()} {new Date(e.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </span>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 text-center">
                         <select
                           value={e.status}
                           onChange={async (ev) => {
@@ -270,30 +270,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout }) => {
                             pushToast('Status updated', 'info');
                             fetchEnquiries();
                           }}
-                          className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer border transition-all ${statusColors[e.status]} ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
+                          className={`inline-block px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest focus:outline-none cursor-pointer border transition-all ${statusColors[e.status]} ${theme === 'dark' ? 'border-white/10' : 'border-black/10'}`}
                         >
                           {Object.values(EnquiryStatus).map(s => (
                             <option key={s} value={s} className="bg-black text-white">{s}</option>
                           ))}
                         </select>
                       </td>
-                      <td className="px-10 py-8">
+                      <td className="px-6 py-6 text-center">
                         <button 
                           onClick={async () => {
-                            if (!confirm('Archive this log entry?')) return;
+                            if (!confirm('Delete this order?')) return;
                             if (!supabase) return;
                             const { error } = await supabase.from('enquiries').delete().eq('id', e.id);
                             if (error) {
                               console.error('Delete failed:', error);
-                              pushToast('Failed to archive entry', 'error');
+                              pushToast('Failed to delete order', 'error');
                               return;
                             }
-                            pushToast('Entry archived', 'warning');
+                            pushToast('Order deleted', 'warning');
                             fetchEnquiries();
                           }}
-                          className="text-[10px] uppercase font-black text-red-500 opacity-20 hover:opacity-100 tracking-widest transition-all"
+                          className="inline-block px-4 py-2 text-[10px] uppercase font-black text-red-600 opacity-70 hover:opacity-100 tracking-widest transition-all"
                         >
-                          Archive
+                          Delete Order
                         </button>
                       </td>
                     </tr>
